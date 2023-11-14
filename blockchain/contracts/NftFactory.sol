@@ -29,7 +29,11 @@ contract FinancingContract is Initializable, ERC721Upgradeable, ERC721BurnableUp
 
     uint256 amountToFinance;
     uint256 investmentFractions;
-    uint256 amountFractions = amountToFinance / investmentFractions;
+    uint256 maxFractions;
+    uint256 amountFractions;
+    uint256 fractionsToWithdraw;
+    bool withdraw;
+    bool completeCycle;
 
     function initialize(uint256 _amountToFinance, uint256 _investmentFractions) initializer public {
         __ERC721_init("MyToken", "MTK");
@@ -39,12 +43,16 @@ contract FinancingContract is Initializable, ERC721Upgradeable, ERC721BurnableUp
 
         amountToFinance = _amountToFinance;
         investmentFractions = _investmentFractions;
+        amountFractions = amountToFinance / investmentFractions;
+        maxFractions = investmentFractions;
     }
 
     event Invest (address investor, uint256 fractions);
+    event TotalAmountFinanced();
+    event WithdrawComplete();
 
-    function investAFraction(uint256 _fractions) public payable {
-        require(_fractions > 0 && fractions <= investmentFractions);
+    function investAFraction(uint256 _fractions) public payable onlyInvestor {
+        require(_fractions > 0 && _fractions <= investmentFractions);
         require(_nextTokenId < investmentFractions);
         transfer(address(this), amountFractions * _fractions);
 
@@ -54,9 +62,37 @@ contract FinancingContract is Initializable, ERC721Upgradeable, ERC721BurnableUp
 
         investmentFractions = investmentFractions - _fractions;
         emit Invest(msg.sender, _fractions);
+        if (investmentFractions == 0){
+            withdraw = true;
+            emit TotalAmountFinanced();
+            }
     }
 
-    function safeMint(address to, uint256 tokenId) public onlyOwner {
+    function enableFractionWithdrawal(uint256 _fractions) public onlyAdmin {
+        require(withdraw == true);
+        require(_fractions > 0 && _fractions <= maxFractions);
+
+        fractionsToWithdraw = _fractions;
+        maxFractions = maxFractions - _fractions;
+    }
+
+    function withdrawInvestment(uint256 _fractions) public onlySupplier {
+        require(fractionsToWithdraw > 0);
+        require(_fractions > 0 && _fractions <= fractionsToWithdraw);
+        require(withdraw == true);
+
+        address supplier = msg.sender;
+        transferFrom(address(this), supplier, _fractions * amountFractions);
+        fractionsToWithdraw -= _fractions;
+
+    }
+
+    function withdrawEarnings() public onlyInvestor {
+        require(completeCycle == true);
+
+    }
+
+    function safeMint(address to, uint256 tokenId) public {
         uint256 tokenId = _nextTokenId++;
         _safeMint(to, tokenId);
     }
