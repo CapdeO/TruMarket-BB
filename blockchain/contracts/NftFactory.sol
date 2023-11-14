@@ -12,8 +12,8 @@ contract Factory is Initializable, ERC721Upgradeable, ERC721BurnableUpgradeable,
     mapping (address => address) public financingContractsOwner;
 
     // Emision de los nuevos smart contracts
-    function Factory() public {
-        address newContract = address(new FinancingContract(msg.sender, address(this)));
+    function Factory(uint256 _amountToFinance, uint256 _investmentFractions ) public {
+        address newContract = address(new FinancingContract(_amountToFinance, _investmentFractions));
         financingContractsOwner[newContract] = msg.sender;
     }
 }
@@ -25,11 +25,17 @@ contract FinancingContract is Initializable, ERC721Upgradeable, ERC721BurnableUp
         _disableInitializers();
     }
 
-    function initialize(address initialOwner) initializer public {
+    uint256 amountToFinance;
+    uint256 investmentFractions;
+
+    function initialize(uint256 _amountToFinance, uint256 _investmentFractions) initializer public {
         __ERC721_init("MyToken", "MTK");
         __ERC721Burnable_init();
         __Ownable_init(initialOwner);
         __UUPSUpgradeable_init();
+
+        amountToFinance = _amountToFinance;
+        investmentFractions = _investmentFractions;
     }
 
     function safeMint(address to, uint256 tokenId) public onlyOwner {
