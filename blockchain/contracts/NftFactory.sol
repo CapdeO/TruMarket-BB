@@ -9,12 +9,12 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 contract Factory is Initializable, ERC721Upgradeable, ERC721BurnableUpgradeable, OwnableUpgradeable, UUPSUpgradeable{
     // Almacenamiento de la informacion del factory
-    mapping (address => address) public personal_contract;
+    mapping (address => address) public financingContractsOwner;
 
     // Emision de los nuevos smart contracts
     function Factory() public {
         address newContract = address(new FinancingContract(msg.sender, address(this)));
-        personal_contract[msg.sender] = direccion_nuevo_contract;
+        financingContractsOwner[newContract] = msg.sender;
     }
 }
 
