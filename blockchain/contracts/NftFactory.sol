@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.18;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721BurnableUpgradeable.sol";
@@ -20,6 +20,8 @@ contract Factory is Initializable, ERC721Upgradeable, ERC721BurnableUpgradeable,
 
 
 contract FinancingContract is Initializable, ERC721Upgradeable, ERC721BurnableUpgradeable, OwnableUpgradeable, UUPSUpgradeable {
+    uint256 private _nextTokenId;
+    
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();
@@ -27,6 +29,7 @@ contract FinancingContract is Initializable, ERC721Upgradeable, ERC721BurnableUp
 
     uint256 amountToFinance;
     uint256 investmentFractions;
+    uint256 amountFractions = amountToFinance / investmentFractions;
 
     function initialize(uint256 _amountToFinance, uint256 _investmentFractions) initializer public {
         __ERC721_init("MyToken", "MTK");
@@ -38,7 +41,23 @@ contract FinancingContract is Initializable, ERC721Upgradeable, ERC721BurnableUp
         investmentFractions = _investmentFractions;
     }
 
+    event Invest (address investor, uint256 fractions);
+
+    function investAFraction(uint256 _fractions) public payable {
+        require(_fractions > 0 && fractions <= investmentFractions);
+        require(_nextTokenId < investmentFractions);
+        transfer(address(this), amountFractions * _fractions);
+
+        for (uint256 i = 0; i <_fractions; i++){
+            safeMint(msg.sender);
+            }
+
+        investmentFractions = investmentFractions - _fractions;
+        emit Invest(msg.sender, _fractions);
+    }
+
     function safeMint(address to, uint256 tokenId) public onlyOwner {
+        uint256 tokenId = _nextTokenId++;
         _safeMint(to, tokenId);
     }
 
