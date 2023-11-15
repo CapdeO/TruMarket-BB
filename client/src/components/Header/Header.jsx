@@ -1,32 +1,38 @@
 import React from 'react'
-import './Header.scss'
-import Dropdown from 'react-bootstrap/Dropdown';
+import Container from 'react-bootstrap/Container';
+import Nav from 'react-bootstrap/Nav';
+import Navbar from 'react-bootstrap/Navbar';
+import NavDropdown from 'react-bootstrap/NavDropdown';
 import 'bootstrap/dist/css/bootstrap.css';
+import './Header.scss'
 
 const Header = () => {
-  return <div className='header'>
-    <Dropdown>
-      <Dropdown.Toggle variant="success" id="dropdown-basic">
-        Admin
-      </Dropdown.Toggle>
-
-      <Dropdown.Menu>
-        <Dropdown.Item href="#/action-1">Approve contracts</Dropdown.Item>
-        <Dropdown.Item href="#/action-2">Manage NFTs</Dropdown.Item>
-      </Dropdown.Menu>
-    </Dropdown>
-
-    <Dropdown>
-      <Dropdown.Toggle variant="success" id="dropdown-basic">
-        Investor
-      </Dropdown.Toggle>
-
-      <Dropdown.Menu>
-        <Dropdown.Item href="#/action-1">Marketplace</Dropdown.Item>
-        <Dropdown.Item href="#/action-2">My NFTs</Dropdown.Item>
-      </Dropdown.Menu>
-    </Dropdown>
-    
+  return <div>
+    <Navbar expand="lg" className="bg-body-tertiary header">
+      <Container>
+        <Navbar.Brand>TRU MARKET</Navbar.Brand>
+        <Navbar.Toggle aria-controls="basic-navbar-nav" />
+        <Navbar.Collapse id="basic-navbar-nav">
+          <Nav className="me-auto">
+            <Nav.Link href="/">Home</Nav.Link>
+            <Nav.Link href="/admin">Admin</Nav.Link>
+            <Nav.Link href="/marketplace">Marketplace</Nav.Link>
+            <Nav.Link href="/investor">Investor</Nav.Link>
+            {/* <NavDropdown title="Dropdown" id="basic-nav-dropdown">
+              <NavDropdown.Item href="#action/3.1">Action</NavDropdown.Item>
+              <NavDropdown.Item href="#action/3.2">
+                Another action
+              </NavDropdown.Item>
+              <NavDropdown.Item href="#action/3.3">Something</NavDropdown.Item>
+              <NavDropdown.Divider />
+              <NavDropdown.Item href="#action/3.4">
+                Separated link
+              </NavDropdown.Item>
+            </NavDropdown> */}
+          </Nav>
+        </Navbar.Collapse>
+      </Container>
+    </Navbar>
   </div>
 }
 

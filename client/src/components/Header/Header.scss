@@ -1,7 +1,14 @@
 .header {
-    min-height: 10vh;
-    background-color: #282c34;
-    display: flex;
-    justify-content: space-around;
-    align-items: center;
+    position: absolute !important;
+    width: 100%;
+    background-color: rgba($color: #000000, $alpha: 0.8) !important;
+
+    & * {
+        // Aplica el estilo a todos los elementos hijos
+        color: white;
+    }
+}
+
+.navbar-toggler {
+    border-color: rgb(163, 176, 163) !important;
 }
