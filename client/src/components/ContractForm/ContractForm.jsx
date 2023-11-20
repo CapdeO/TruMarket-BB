@@ -12,11 +12,11 @@ const ContractForm = () => {
     const [totalAmount, setTotalAmount] = useState('');
     const [NFTsAmount, setNFTsAmount] = useState('');
     const [NFTPrice, setNFTPrice] = useState(0);
-    const [milestones, setMilestones] = useState(5);
+    const [milestones, setMilestones] = useState(3);
 
     // MILESTONE ------------------------------------------------------------------
 
-    const [milestoneData, setMilestoneData] = useState(Array.from({ length: 5 }, (_, index) => ({ id: index + 1, name: '', percentage: '' })));
+    const [milestoneData, setMilestoneData] = useState(Array.from({ length: 3 }, (_, index) => ({ id: index + 1, name: '', percentage: '' })));
 
     const handleMilestonesChange = (e) => {
         const newMilestones = parseInt(e.target.value, 10);
@@ -45,7 +45,7 @@ const ContractForm = () => {
         // Validación de nombres y porcentajes
         const hasEmptyNames = milestoneData.some((milestone) => milestone.name.trim() === '');
         const totalPercentage = milestoneData.reduce((sum, milestone) => sum + parseFloat(milestone.percentage) || 0, 0);
-        
+
         if (hasEmptyNames) {
             Alerta({
                 title: 'Error',
@@ -169,29 +169,31 @@ const ContractForm = () => {
                     {milestoneData.map((milestone) => (
 
                         <Form.Group key={milestone.id} controlId={`milestone-${milestone.id}`}>
-                            <Row>
-                                <Col xs={1} className='centrado'>
-                                    <Form.Label>{`${milestone.id}`}</Form.Label>
-                                </Col>
-                                <Col>
-                                    <Form.Control
-                                        type="text"
-                                        placeholder={`Milestone #${milestone.id}`}
-                                        value={milestone.name}
-                                        onChange={(e) => handleMilestoneInputChange(milestone.id, 'name', e.target.value)}
-                                    />
-                                </Col>
-                                <Col xs={3}>
-                                    <Form.Control
-                                        type="number"
-                                        placeholder="%"
-                                        value={milestone.percentage}
-                                        onChange={(e) =>
-                                            handleMilestoneInputChange(milestone.id, 'percentage', e.target.value)
-                                        }
-                                    />
-                                </Col>
-                            </Row>
+                            <Fade left >
+                                <Row>
+                                    <Col xs={1} className='centrado'>
+                                        <Form.Label>{`${milestone.id}`}</Form.Label>
+                                    </Col>
+                                    <Col>
+                                        <Form.Control
+                                            type="text"
+                                            placeholder={`Milestone #${milestone.id}`}
+                                            value={milestone.name}
+                                            onChange={(e) => handleMilestoneInputChange(milestone.id, 'name', e.target.value)}
+                                        />
+                                    </Col>
+                                    <Col xs={3}>
+                                        <Form.Control
+                                            type="number"
+                                            placeholder="%"
+                                            value={milestone.percentage}
+                                            onChange={(e) =>
+                                                handleMilestoneInputChange(milestone.id, 'percentage', e.target.value)
+                                            }
+                                        />
+                                    </Col>
+                                </Row>
+                            </Fade>
                         </Form.Group>
                     ))}
 
