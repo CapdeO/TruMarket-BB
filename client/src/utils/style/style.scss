@@ -5,6 +5,12 @@
     border: 2px solid red;
 }
 
+.centrado {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
 .margen {
     padding: 6vh 0;
 }
