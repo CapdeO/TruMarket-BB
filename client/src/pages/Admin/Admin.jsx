@@ -1,5 +1,4 @@
-import React, { useState, useRef } from 'react';
-import { Transition } from 'react-transition-group';
+import React, { useState } from 'react';
 import Container from 'react-bootstrap/Container';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
@@ -12,31 +11,48 @@ import ContractForm from '../../components/ContractForm/ContractForm';
 
 const Admin = () => {
 
+    const [contractForm, setContractForm] = useState(false);
+    const [NFTsList, setNFTsList] = useState(false);
 
-    return <div className='admin'>
-        <Container className='margen'>
-            <BigButton
-                text={'Approbe Contract'}
-            //onClickButton={() => handleApproveContract()}
-            />
-            <BigButton
-                text={'Manage NFTs'}
-            //onClickButton={() => handleManageNFTs()}
-            />
-        </Container>
+    const showContractForm = () => {
+        setNFTsList(false);
+        setContractForm(true);
+    };
 
-        https://www.youtube.com/watch?v=3_wFkcg7gTI&ab_channel=GaurAssociates
+    const showNFTsList = () => {
+        setContractForm(false);
+        setNFTsList(true);
+    };
 
-        <Container className='margen' >
-            <ContractForm />
-        </Container>
+    return (
+        <div className='admin'>
+            <Container className='margen'>
+                <BigButton
+                    text={'Approbe Contract'}
+                    onClickButton={() => showContractForm()}
+                    direction={'left'}
+                />
+                <BigButton
+                    text={'Manage NFTs'}
+                    onClickButton={() => showNFTsList()}
+                    direction={'right'}
+                />
+            </Container>
 
+            {contractForm && (
+                <Container className={`margen`}>
+                    <ContractForm />
+                </Container>
+            )}
 
+            {NFTsList && (
+                <Container className={`margen`}>
+                    <h2>DIV2</h2>
+                </Container>
+            )}
 
-
-
-    </div>
+        </div>
+    )
 }
-
 
 export default Admin
