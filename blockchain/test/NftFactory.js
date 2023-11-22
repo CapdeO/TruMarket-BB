@@ -16,6 +16,13 @@ describe("Testeando NFTFactory", () => {
     describe("deploy", () => {
         it("deploy", async () => {
             var { factory, owner } = await loadFixture(loadTest);
+
+            await factory.FactoryFunc(
+                
+            )
+
+
+
         });
 
     });

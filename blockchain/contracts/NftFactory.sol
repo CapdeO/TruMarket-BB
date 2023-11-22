@@ -144,7 +144,7 @@ contract FinancingContract is
     }
 
     function initialize(
-        uint256 _amountToFinance, uint256 _investmentFractions
+        uint256 _amountToFinance, uint256 _investmentFractions, address addUsdc
     ) public initializer {
         __ERC721_init("MyToken", "MTK");
         __ERC721Enumerable_init();
@@ -153,10 +153,17 @@ contract FinancingContract is
         __ERC721Burnable_init();
         __UUPSUpgradeable_init();
 
+        usdc = IUSDC(addUsdc);
+
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(PAUSER_ROLE, msg.sender);
         _grantRole(MINTER_ROLE, msg.sender);
         _grantRole(UPGRADER_ROLE, msg.sender);
+
+        amountToFinance = _amountToFinance;
+        investmentFractions = _investmentFractions;
+        amountFractions = amountToFinance / investmentFractions;
+        maxFractions = investmentFractions;
     }
 
     // function initialize(uint256 _amountToFinance, uint256 _investmentFractions, address _admin, address addUsdc) initializer public {
@@ -184,6 +191,7 @@ contract FinancingContract is
         require(_nextTokenId < investmentFractions);
         require(usdc.balanceOf(msg.sender) >= _fractions * amountFractions);
         uint amount = amountFractions * _fractions;
+        require(usdc.allowance(msg.sender, address(this)) >= amount, "You must approbe the amount first.");
         usdc.transferFrom(msg.sender, address(this), amount);
 
         for (uint256 i = 0; i < _fractions; i++) {
@@ -198,25 +206,44 @@ contract FinancingContract is
         }
     }
 
-    function enableFractionWithdrawal(uint256 _fractions) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        require(withdraw == true);
-        require(_fractions > 0 && _fractions <= maxFractions);
+    
 
-        fractionsToWithdraw = _fractions;
-        maxFractions = maxFractions - _fractions;
-    }
+    // uint256[] public Milestones;
+    // // [20, 20, 10, 30, 50, 40]
+    // // 0    1   2   3  4   5
 
-    function withdrawInvestment(uint256 _fractions) public onlySuplier {
-        require(fractionsToWithdraw > 0);
-        require(_fractions > 0 && _fractions <= fractionsToWithdraw);
-        require(withdraw == true);
+    // mapping (uint256 => uint256) milestones;
 
-        address supplier = msg.sender;
-        uint256 amount = _fractions * amountFractions;
-        // aprove?
-        transferFrom(address(this), supplier, amount);
-        fractionsToWithdraw -= _fractions;
-    }
+    // uint256 actualMilestone;
+
+    // uint256 milestone;
+    // uint256 actualMilestone;
+    // function que libere los pagos del milestone actual
+
+    // cuando se llama la funcion que libera el pago del milestone actual
+    // envia el porcentaje de USDT a la address del exportador
+    // aumenta actualMilestone +1
+
+
+    // function enableFractionWithdrawal(uint256 _fractions) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    //     require(withdraw == true);
+    //     require(_fractions > 0 && _fractions <= maxFractions);
+
+    //     fractionsToWithdraw = _fractions;
+    //     maxFractions = maxFractions - _fractions;
+    // }
+
+    // function withdrawInvestment(uint256 _fractions) public onlySuplier {
+    //     require(fractionsToWithdraw > 0);
+    //     require(_fractions > 0 && _fractions <= fractionsToWithdraw);
+    //     require(withdraw == true);
+
+    //     address supplier = msg.sender;
+    //     uint256 amount = _fractions * amountFractions;
+    //     // aprove?
+    //     transferFrom(address(this), supplier, amount);
+    //     fractionsToWithdraw -= _fractions;
+    // }
 
     function withdrawEarnings() public onlyInvestor {
         require(completeCycle == true);
