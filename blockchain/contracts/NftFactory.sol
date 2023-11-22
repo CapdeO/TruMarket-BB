@@ -23,6 +23,12 @@ contract Factory is
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
     bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
 
+    // Cantidad de contratos creados hasta el momento
+    uint256 public contractsCounter;
+
+    // Array con todas las direcciones de los contratos creados
+    address[] public addressesERC721Created;
+
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();
@@ -52,17 +58,15 @@ contract Factory is
         address newImplementation
     ) internal override onlyRole(UPGRADER_ROLE) {}
 
-    // Almacenamiento de la informacion del factory
-    //mapping (address => address) public financingContractsOwner;
-
-    // Array con todas las direcciones de los contratos creados
-    address[] public addressesERC721Created;
-
     // Emision de los nuevos smart contracts
     function FactoryFunc(
         uint256 _amountToFinance,
         uint256 _investmentFractions
     ) public {
+        contractsCounter += 1;
+
+        //string memory symbol = 
+
         //address newContract = address(new FinancingContract(_amountToFinance, _investmentFractions));
         address newContract = address(new FinancingContract());
         //financingContractsOwner[newContract] = msg.sender;
@@ -129,11 +133,6 @@ contract FinancingContract is
     mapping(address => bool) public investors;
     mapping(address => bool) public supliers;
 
-    // modifier onlyAdmin() {
-    //     require(msg.sender == admin);
-    //     _;
-    // }
-
     modifier onlyInvestor() {
         require(investors[msg.sender] == true);
         _;
@@ -144,16 +143,20 @@ contract FinancingContract is
     }
 
     function initialize(
-        uint256 _amountToFinance, uint256 _investmentFractions, address addUsdc
+        string memory _name,
+        string memory _symbol,
+        uint256 _amountToFinance, 
+        uint256 _investmentFractions, 
+        address _addUsdc
     ) public initializer {
-        __ERC721_init("MyToken", "MTK");
+        __ERC721_init(_name, _symbol);
         __ERC721Enumerable_init();
         __ERC721Pausable_init();
         __AccessControl_init();
         __ERC721Burnable_init();
         __UUPSUpgradeable_init();
 
-        usdc = IUSDC(addUsdc);
+        usdc = IUSDC(_addUsdc);
 
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(PAUSER_ROLE, msg.sender);
@@ -165,22 +168,6 @@ contract FinancingContract is
         amountFractions = amountToFinance / investmentFractions;
         maxFractions = investmentFractions;
     }
-
-    // function initialize(uint256 _amountToFinance, uint256 _investmentFractions, address _admin, address addUsdc) initializer public {
-    //     __ERC721_init("MyToken", "MTK");
-    //     __ERC721Burnable_init();
-    //     __UUPSUpgradeable_init();
-
-    //     usdcAdd = addUsdc;
-    //     usdc = IUSDC(usdcAdd);
-
-    //     admin = _admin;
-
-    //     amountToFinance = _amountToFinance;
-    //     investmentFractions = _investmentFractions;
-    //     amountFractions = amountToFinance / investmentFractions;
-    //     maxFractions = investmentFractions;
-    // }
 
     event Invest(address investor, uint256 fractions);
     event TotalAmountFinanced();
