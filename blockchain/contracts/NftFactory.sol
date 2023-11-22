@@ -195,13 +195,13 @@ contract FinancingContract is
 
     
 
-    // uint256[] public Milestones;
+     uint256[] public milestones;
     // // [20, 20, 10, 30, 50, 40]
     // // 0    1   2   3  4   5
 
     // mapping (uint256 => uint256) milestones;
 
-    // uint256 actualMilestone;
+     uint256 actualMilestone;
 
     // uint256 milestone;
     // uint256 actualMilestone;
@@ -210,6 +210,15 @@ contract FinancingContract is
     // cuando se llama la funcion que libera el pago del milestone actual
     // envia el porcentaje de USDT a la address del exportador
     // aumenta actualMilestone +1
+
+    function payMilestone() public onlyRole(DEFAULT_ADMIN_ROLE) {
+        require(withdraw == true);
+        uint256 pay = (amountToFinance * milestones[actualMilestone]) / 100;
+        require(usdc.balanceOf(address(this)) >= pay);
+        usdc.transfer(supplier, pay);
+        actualMilestone++;
+
+    }
 
 
     // function enableFractionWithdrawal(uint256 _fractions) public onlyRole(DEFAULT_ADMIN_ROLE) {
