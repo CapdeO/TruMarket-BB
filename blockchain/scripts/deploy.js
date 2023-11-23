@@ -1,28 +1,27 @@
-// We require the Hardhat Runtime Environment explicitly here. This is optional
-// but useful for running the script in a standalone fashion through `node <script>`.
-//
-// You can also run a script with `npx hardhat run <script>`. If you do that, Hardhat
-// will compile your contracts, add the Hardhat Runtime Environment's members to the
-// global scope, and execute the script.
 const hre = require("hardhat");
 
+// Factory upgradeable
 async function main() {
-  const currentTimestampInSeconds = Math.round(Date.now() / 1000);
-  const unlockTime = currentTimestampInSeconds + 60;
+  var UpgradeableFactory = await hre.ethers.getContractFactory("Factory");
 
-  const lockedAmount = hre.ethers.parseEther("0.001");
-
-  const lock = await hre.ethers.deployContract("Lock", [unlockTime], {
-    value: lockedAmount,
+  var upgradeableFactory = await UpgradeableFactory.deployProxy(UpgradeableFactory, [], {
+    kind: "uups",
   });
 
-  await lock.waitForDeployment();
+  var tx = await upgradeableFactory.waitForDeployment();
+  await tx.deploymentTransaction().wait(5);
 
-  console.log(
-    `Lock with ${ethers.formatEther(
-      lockedAmount
-    )}ETH and unlock timestamp ${unlockTime} deployed to ${lock.target}`
+  var impFactoryAdd = await upgrades.erc1967.getImplementationAddress(
+    await upgradeableFactory.getAddress()
   );
+
+  console.log(`Address del Proxy es: ${await upgradeableFactory.getAddress()}`);
+  console.log(`Address de Impl es: ${impFactoryAdd}`);
+
+  await hre.run("verify:verify", {
+    address: impFactoryAdd,
+    constructorArguments: [],
+  });
 }
 
 // We recommend this pattern to be able to use async/await everywhere
