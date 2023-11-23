@@ -6,13 +6,13 @@ import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
 // ==========---------->>>>>   Librerias para el ERC721
-import "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721EnumerableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721PausableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721BurnableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Pausable.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
 
 contract Factory is
     Initializable,
@@ -20,6 +20,8 @@ contract Factory is
     AccessControlUpgradeable,
     UUPSUpgradeable
 {
+    /* ========== STATE VARIABLES ========== */
+
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
     bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
 
@@ -29,14 +31,16 @@ contract Factory is
     // Array con todas las direcciones de los contratos creados
     address[] public addressesERC721Created;
 
+    /* ========== Events ========== */
+
+    event NewContractDeployed(address indexed deployedContract);
+
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();
     }
 
-    function initialize(
-
-    ) public initializer {
+    function initialize() public initializer {
         __Pausable_init();
         __AccessControl_init();
         __UUPSUpgradeable_init();
@@ -60,16 +64,29 @@ contract Factory is
 
     // Emision de los nuevos smart contracts
     function FactoryFunc(
-        uint256 _amountToFinance,
-        uint256 _investmentFractions
-    ) public {
+        //uint256 _amountToFinance,
+        //uint256 _investmentFractions,
+        address _addUsdc
+    ) public returns (address) {
         contractsCounter += 1;
 
-        //string memory symbol = 
+        string memory name = "nombre";
+        string memory symbol = string(
+            abi.encodePacked("TM", Strings.toString(contractsCounter))
+        );
+        uint256 _amountToFinance = 10000;
+        uint256 _investmentFractions = 5;
 
-        //address newContract = address(new FinancingContract(_amountToFinance, _investmentFractions));
-        address newContract = address(new FinancingContract());
-        //financingContractsOwner[newContract] = msg.sender;
+        FinancingContract newContract = new FinancingContract();
+        newContract.initialize(
+            name,
+            symbol,
+            _amountToFinance,
+            _investmentFractions,
+            _addUsdc
+        );
+
+        return address(newContract);
     }
 }
 
@@ -100,7 +117,7 @@ interface IUSDC {
     function balanceOf(address account) external view returns (uint256);
 }
 
-contract FinancingContract is
+contract FinancingContractUp is
     Initializable,
     ERC721Upgradeable,
     ERC721EnumerableUpgradeable,
@@ -145,8 +162,8 @@ contract FinancingContract is
     function initialize(
         string memory _name,
         string memory _symbol,
-        uint256 _amountToFinance, 
-        uint256 _investmentFractions, 
+        uint256 _amountToFinance,
+        uint256 _investmentFractions,
         address _addUsdc
     ) public initializer {
         __ERC721_init(_name, _symbol);
@@ -178,7 +195,10 @@ contract FinancingContract is
         require(_nextTokenId < investmentFractions);
         require(usdc.balanceOf(msg.sender) >= _fractions * amountFractions);
         uint amount = amountFractions * _fractions;
-        require(usdc.allowance(msg.sender, address(this)) >= amount, "You must approbe the amount first.");
+        require(
+            usdc.allowance(msg.sender, address(this)) >= amount,
+            "You must approbe the amount first."
+        );
         usdc.transferFrom(msg.sender, address(this), amount);
 
         for (uint256 i = 0; i < _fractions; i++) {
@@ -193,15 +213,13 @@ contract FinancingContract is
         }
     }
 
-    
-
-     uint256[] public milestones;
+    uint256[] public milestones;
     // // [20, 20, 10, 30, 50, 40]
     // // 0    1   2   3  4   5
 
     // mapping (uint256 => uint256) milestones;
 
-     uint256 actualMilestone;
+    uint256 actualMilestone;
 
     // uint256 milestone;
     // uint256 actualMilestone;
@@ -213,13 +231,11 @@ contract FinancingContract is
 
     function payMilestone() public onlyRole(DEFAULT_ADMIN_ROLE) {
         require(withdraw == true);
-        uint256 pay = (amountToFinance * milestones[actualMilestone]) / 100;
-        require(usdc.balanceOf(address(this)) >= pay);
-        usdc.transfer(supplier, pay);
+        //uint256 pay = (amountToFinance * milestones[actualMilestone]) / 100;
+        //require(usdc.balanceOf(address(this)) >= pay);
+        //usdc.transfer(supplier, pay);
         actualMilestone++;
-
     }
-
 
     // function enableFractionWithdrawal(uint256 _fractions) public onlyRole(DEFAULT_ADMIN_ROLE) {
     //     require(withdraw == true);
@@ -241,29 +257,37 @@ contract FinancingContract is
     //     fractionsToWithdraw -= _fractions;
     // }
 
-    function withdrawEarnings() public onlyInvestor {
-        require(completeCycle == true);
-        //Porcentaje de tru market
-    }
+    // function withdrawEarnings() public onlyInvestor {
+    //     require(completeCycle == true);
+    //     //Porcentaje de tru market
+    // }
 
     function safeMint(address to, uint256 tokenId) public {
         tokenId = _nextTokenId++;
         _safeMint(to, tokenId);
     }
 
-    function adminAddInvestor(address _investor) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function adminAddInvestor(
+        address _investor
+    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
         investors[_investor] = true;
     }
 
-    function adminAddSupplier(address _suplier) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function adminAddSupplier(
+        address _suplier
+    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
         supliers[_suplier] = true;
     }
 
-    function adminResInvestor(address _investor) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function adminResInvestor(
+        address _investor
+    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
         investors[_investor] = false;
     }
 
-    function adminResSupplier(address _suplier) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function adminResSupplier(
+        address _suplier
+    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
         supliers[_suplier] = false;
     }
 
@@ -282,24 +306,94 @@ contract FinancingContract is
 
     // The following functions are overrides required by Solidity.
 
-    function _beforeTokenTransfer(address from, address to, uint256 tokenId, uint256 batchSize)
+    function _beforeTokenTransfer(
+        address from,
+        address to,
+        uint256 tokenId,
+        uint256 batchSize
+    )
         internal
+        override(
+            ERC721Upgradeable,
+            ERC721EnumerableUpgradeable,
+            ERC721PausableUpgradeable
+        )
         whenNotPaused
-        override(ERC721Upgradeable, ERC721EnumerableUpgradeable, ERC721PausableUpgradeable)
     {
         super._beforeTokenTransfer(from, to, tokenId, batchSize);
     }
 
-    function _authorizeUpgrade(address newImplementation)
+    function _authorizeUpgrade(
+        address newImplementation
+    ) internal override onlyRole(UPGRADER_ROLE) {}
+
+    function supportsInterface(
+        bytes4 interfaceId
+    )
+        public
+        view
+        override(
+            ERC721Upgradeable,
+            ERC721EnumerableUpgradeable,
+            AccessControlUpgradeable
+        )
+        returns (bool)
+    {
+        return super.supportsInterface(interfaceId);
+    }
+}
+
+
+contract FinancingContract is 
+    ERC721, ERC721Enumerable, 
+    ERC721Pausable, 
+    AccessControl, 
+    ERC721Burnable 
+{
+    bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
+    bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
+
+    constructor(address defaultAdmin, address pauser, address minter)
+        ERC721("MyToken", "MTK")
+    {
+        _grantRole(DEFAULT_ADMIN_ROLE, defaultAdmin);
+        _grantRole(PAUSER_ROLE, pauser);
+        _grantRole(MINTER_ROLE, minter);
+    }
+
+    function pause() public onlyRole(PAUSER_ROLE) {
+        _pause();
+    }
+
+    function unpause() public onlyRole(PAUSER_ROLE) {
+        _unpause();
+    }
+
+    function safeMint(address to, uint256 tokenId) public onlyRole(MINTER_ROLE) {
+        _safeMint(to, tokenId);
+    }
+
+    // The following functions are overrides required by Solidity.
+
+    function _update(address to, uint256 tokenId, address auth)
         internal
-        onlyRole(UPGRADER_ROLE)
-        override
-    {}
+        override(ERC721, ERC721Enumerable, ERC721Pausable)
+        returns (address)
+    {
+        return super._update(to, tokenId, auth);
+    }
+
+    function _increaseBalance(address account, uint128 value)
+        internal
+        override(ERC721, ERC721Enumerable)
+    {
+        super._increaseBalance(account, value);
+    }
 
     function supportsInterface(bytes4 interfaceId)
         public
         view
-        override(ERC721Upgradeable, ERC721EnumerableUpgradeable, AccessControlUpgradeable)
+        override(ERC721, ERC721Enumerable, AccessControl)
         returns (bool)
     {
         return super.supportsInterface(interfaceId);
