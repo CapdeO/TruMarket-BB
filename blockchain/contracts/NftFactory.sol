@@ -146,7 +146,6 @@ contract FinancingContract is
         string description;
     }
 
-    Milestone[] milestones;
 
     mapping(address => bool) public investors;
     mapping(address => bool) public supliers;
