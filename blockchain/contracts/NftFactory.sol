@@ -117,24 +117,17 @@ interface IUSDC {
     function balanceOf(address account) external view returns (uint256);
 }
 
-contract FinancingContractUp is
-    Initializable,
-    ERC721Upgradeable,
-    ERC721EnumerableUpgradeable,
-    ERC721PausableUpgradeable,
-    AccessControlUpgradeable,
-    ERC721BurnableUpgradeable,
-    UUPSUpgradeable
+contract FinancingContract is 
+    ERC721, ERC721Enumerable, 
+    ERC721Pausable, 
+    AccessControl, 
+    ERC721Burnable 
 {
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
-    uint256 private _nextTokenId;
 
-    /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor() {
-        _disableInitializers();
-    }
+    uint256 private _nextTokenId;
 
     //address admin;
     uint256 amountToFinance;
@@ -146,6 +139,11 @@ contract FinancingContractUp is
     bool completeCycle;
     address usdcAdd;
     IUSDC usdc;
+
+    struct Milestone {
+        uint256 step;
+        string description;
+    }
 
     mapping(address => bool) public investors;
     mapping(address => bool) public supliers;
@@ -159,36 +157,30 @@ contract FinancingContractUp is
         _;
     }
 
-    function initialize(
-        string memory _name,
+    event Invest(address investor, uint256 fractions);
+    event TotalAmountFinanced();
+    event WithdrawComplete();
+    event newMilestone(uint256 step, string description);
+
+    constructor(string memory _name,
         string memory _symbol,
         uint256 _amountToFinance,
         uint256 _investmentFractions,
-        address _addUsdc
-    ) public initializer {
-        __ERC721_init(_name, _symbol);
-        __ERC721Enumerable_init();
-        __ERC721Pausable_init();
-        __AccessControl_init();
-        __ERC721Burnable_init();
-        __UUPSUpgradeable_init();
-
-        usdc = IUSDC(_addUsdc);
-
+        address _addUsdc)
+        ERC721("MyToken", "MTK")
+    {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(PAUSER_ROLE, msg.sender);
         _grantRole(MINTER_ROLE, msg.sender);
         _grantRole(UPGRADER_ROLE, msg.sender);
+
+        usdc = IUSDC(_addUsdc);
 
         amountToFinance = _amountToFinance;
         investmentFractions = _investmentFractions;
         amountFractions = amountToFinance / investmentFractions;
         maxFractions = investmentFractions;
     }
-
-    event Invest(address investor, uint256 fractions);
-    event TotalAmountFinanced();
-    event WithdrawComplete();
 
     function investAFraction(uint256 _fractions) public onlyInvestor {
         require(_fractions > 0 && _fractions <= investmentFractions);
@@ -213,54 +205,18 @@ contract FinancingContractUp is
         }
     }
 
-    uint256[] public milestones;
-    // // [20, 20, 10, 30, 50, 40]
-    // // 0    1   2   3  4   5
+    //function para que quede registrado los milestones
+    function addMilestone(uint256 _step, string memory _description) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        require(_step > 0, "Invalid Step");
+        milestones.push(Milestone(_step, _description));
+        emit newMilestone(_step, _description);
 
-    // mapping (uint256 => uint256) milestones;
-
-    uint256 actualMilestone;
-
-    // uint256 milestone;
-    // uint256 actualMilestone;
-    // function que libere los pagos del milestone actual
-
-    // cuando se llama la funcion que libera el pago del milestone actual
-    // envia el porcentaje de USDT a la address del exportador
-    // aumenta actualMilestone +1
-
-    function payMilestone() public onlyRole(DEFAULT_ADMIN_ROLE) {
-        require(withdraw == true);
-        //uint256 pay = (amountToFinance * milestones[actualMilestone]) / 100;
-        //require(usdc.balanceOf(address(this)) >= pay);
-        //usdc.transfer(supplier, pay);
-        actualMilestone++;
     }
 
-    // function enableFractionWithdrawal(uint256 _fractions) public onlyRole(DEFAULT_ADMIN_ROLE) {
-    //     require(withdraw == true);
-    //     require(_fractions > 0 && _fractions <= maxFractions);
-
-    //     fractionsToWithdraw = _fractions;
-    //     maxFractions = maxFractions - _fractions;
-    // }
-
-    // function withdrawInvestment(uint256 _fractions) public onlySuplier {
-    //     require(fractionsToWithdraw > 0);
-    //     require(_fractions > 0 && _fractions <= fractionsToWithdraw);
-    //     require(withdraw == true);
-
-    //     address supplier = msg.sender;
-    //     uint256 amount = _fractions * amountFractions;
-    //     // aprove?
-    //     transferFrom(address(this), supplier, amount);
-    //     fractionsToWithdraw -= _fractions;
-    // }
-
-    // function withdrawEarnings() public onlyInvestor {
-    //     require(completeCycle == true);
-    //     //Porcentaje de tru market
-    // }
+    // function para ver el estado del milestone
+    function milestoneState() public view returns(Milestone[] memory) {
+        return milestones;
+    }
 
     function safeMint(address to, uint256 tokenId) public {
         tokenId = _nextTokenId++;
@@ -289,7 +245,7 @@ contract FinancingContractUp is
         address _suplier
     ) public onlyRole(DEFAULT_ADMIN_ROLE) {
         supliers[_suplier] = false;
-    }
+    }    
 
     function pause() public onlyRole(PAUSER_ROLE) {
         _pause();
@@ -297,80 +253,6 @@ contract FinancingContractUp is
 
     function unpause() public onlyRole(PAUSER_ROLE) {
         _unpause();
-    }
-
-    function safeMint(address to) public onlyRole(MINTER_ROLE) {
-        uint256 tokenId = _nextTokenId++;
-        _safeMint(to, tokenId);
-    }
-
-    // The following functions are overrides required by Solidity.
-
-    function _beforeTokenTransfer(
-        address from,
-        address to,
-        uint256 tokenId,
-        uint256 batchSize
-    )
-        internal
-        override(
-            ERC721Upgradeable,
-            ERC721EnumerableUpgradeable,
-            ERC721PausableUpgradeable
-        )
-        whenNotPaused
-    {
-        super._beforeTokenTransfer(from, to, tokenId, batchSize);
-    }
-
-    function _authorizeUpgrade(
-        address newImplementation
-    ) internal override onlyRole(UPGRADER_ROLE) {}
-
-    function supportsInterface(
-        bytes4 interfaceId
-    )
-        public
-        view
-        override(
-            ERC721Upgradeable,
-            ERC721EnumerableUpgradeable,
-            AccessControlUpgradeable
-        )
-        returns (bool)
-    {
-        return super.supportsInterface(interfaceId);
-    }
-}
-
-
-contract FinancingContract is 
-    ERC721, ERC721Enumerable, 
-    ERC721Pausable, 
-    AccessControl, 
-    ERC721Burnable 
-{
-    bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
-    bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
-
-    constructor(address defaultAdmin, address pauser, address minter)
-        ERC721("MyToken", "MTK")
-    {
-        _grantRole(DEFAULT_ADMIN_ROLE, defaultAdmin);
-        _grantRole(PAUSER_ROLE, pauser);
-        _grantRole(MINTER_ROLE, minter);
-    }
-
-    function pause() public onlyRole(PAUSER_ROLE) {
-        _pause();
-    }
-
-    function unpause() public onlyRole(PAUSER_ROLE) {
-        _unpause();
-    }
-
-    function safeMint(address to, uint256 tokenId) public onlyRole(MINTER_ROLE) {
-        _safeMint(to, tokenId);
     }
 
     // The following functions are overrides required by Solidity.
