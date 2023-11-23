@@ -77,8 +77,7 @@ contract Factory is
         uint256 _amountToFinance = 10000;
         uint256 _investmentFractions = 5;
 
-        FinancingContract newContract = new FinancingContract();
-        newContract.initialize(
+        FinancingContract newContract = new FinancingContract(
             name,
             symbol,
             _amountToFinance,
@@ -118,7 +117,7 @@ interface IUSDC {
 }
 
 contract FinancingContract is 
-    ERC721, ERC721Enumerable, 
+    ERC721, ERC721Enumerable,
     ERC721Pausable, 
     AccessControl, 
     ERC721Burnable 
@@ -139,6 +138,8 @@ contract FinancingContract is
     bool completeCycle;
     address usdcAdd;
     IUSDC usdc;
+    
+    Milestone[] milestones;
 
     struct Milestone {
         uint256 step;
