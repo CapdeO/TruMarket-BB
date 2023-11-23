@@ -24,6 +24,20 @@ async function main() {
   });
 }
 
+// USDC
+async function main() {
+  var contractUSDC = await ethers.deployContract("TetherUSD");
+  console.log(`Address del contrato ${await contractUSDC.getAddress()}`)
+
+  var res = await contractUSDC.waitForDeployment();
+  await res.deploymentTransaction().wait(5);
+
+  await hre.run("verify:verify", {
+    address: await contractUSDC.getAddress(),
+    constructorArguments: [],
+  });
+}
+
 // We recommend this pattern to be able to use async/await everywhere
 // and properly handle errors.
 main().catch((error) => {
