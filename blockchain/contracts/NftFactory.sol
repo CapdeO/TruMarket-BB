@@ -105,22 +105,17 @@ interface IUSDC {
 
     function transfer(address to, uint256 amount) external returns (bool);
 
-    function _beforeTokenTransfer(
-        address from,
-        address to,
-        uint256 amount
-    ) external;
-
     function approve(address spender, uint256 amount) external returns (bool);
 
     function balanceOf(address account) external view returns (uint256);
 }
 
-contract FinancingContract is 
-    ERC721, ERC721Enumerable,
-    ERC721Pausable, 
-    AccessControl, 
-    ERC721Burnable 
+contract FinancingContract is
+    ERC721,
+    ERC721Enumerable,
+    ERC721Pausable,
+    AccessControl,
+    ERC721Burnable
 {
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
@@ -128,7 +123,6 @@ contract FinancingContract is
 
     uint256 private _nextTokenId;
 
-    //address admin;
     uint256 amountToFinance;
     uint256 investmentFractions;
     uint256 maxFractions;
@@ -138,14 +132,6 @@ contract FinancingContract is
     bool completeCycle;
     address usdcAdd;
     IUSDC usdc;
-    
-    Milestone[] milestones;
-
-    struct Milestone {
-        uint256 step;
-        string description;
-    }
-
 
     mapping(address => bool) public investors;
     mapping(address => bool) public supliers;
@@ -164,13 +150,13 @@ contract FinancingContract is
     event WithdrawComplete();
     event newMilestone(uint256 step, string description);
 
-    constructor(string memory _name,
+    constructor(
+        string memory _name,
         string memory _symbol,
         uint256 _amountToFinance,
         uint256 _investmentFractions,
-        address _addUsdc)
-        ERC721("MyToken", "MTK")
-    {
+        address _addUsdc
+    ) ERC721(_name, _symbol) {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(PAUSER_ROLE, msg.sender);
         _grantRole(MINTER_ROLE, msg.sender);
@@ -207,19 +193,6 @@ contract FinancingContract is
         }
     }
 
-    //function para que quede registrado los milestones
-    function addMilestone(uint256 _step, string memory _description) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        require(_step > 0, "Invalid Step");
-        milestones.push(Milestone(_step, _description));
-        emit newMilestone(_step, _description);
-
-    }
-
-    // function para ver el estado del milestone
-    function milestoneState() public view returns(Milestone[] memory) {
-        return milestones;
-    }
-
     function safeMint(address to, uint256 tokenId) public {
         tokenId = _nextTokenId++;
         _safeMint(to, tokenId);
@@ -247,7 +220,7 @@ contract FinancingContract is
         address _suplier
     ) public onlyRole(DEFAULT_ADMIN_ROLE) {
         supliers[_suplier] = false;
-    }    
+    }
 
     function pause() public onlyRole(PAUSER_ROLE) {
         _pause();
@@ -259,21 +232,6 @@ contract FinancingContract is
 
     // The following functions are overrides required by Solidity.
 
-    function _update(address to, uint256 tokenId, address auth)
-        internal
-        override(ERC721, ERC721Enumerable, ERC721Pausable)
-        returns (address)
-    {
-        return super._update(to, tokenId, auth);
-    }
-
-    function _increaseBalance(address account, uint128 value)
-        internal
-        override(ERC721, ERC721Enumerable)
-    {
-        super._increaseBalance(account, value);
-    }
-
     function supportsInterface(bytes4 interfaceId)
         public
         view
@@ -281,5 +239,12 @@ contract FinancingContract is
         returns (bool)
     {
         return super.supportsInterface(interfaceId);
+    }
+
+    function _beforeTokenTransfer(address from, address to, uint256 tokenId, uint256 batchSize)
+        internal
+        override(ERC721, ERC721Enumerable, ERC721Pausable)
+    {
+        super._beforeTokenTransfer(from, to, tokenId, batchSize);
     }
 }
