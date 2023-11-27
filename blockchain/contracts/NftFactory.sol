@@ -194,6 +194,11 @@ contract FinancingContract is
         _safeMint(to, tokenId);
     }
 
+    function burnNft(uint256 tokenId, uint256 amount) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        _burn(tokenId);
+        transferFrom(address(this), msg.sender, amount);
+    }
+
     function adminAddInvestor(
         address _investor
     ) public onlyRole(DEFAULT_ADMIN_ROLE) {
