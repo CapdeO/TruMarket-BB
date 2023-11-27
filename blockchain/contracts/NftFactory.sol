@@ -64,22 +64,20 @@ contract Factory is
 
     // Emision de los nuevos smart contracts
     function FactoryFunc(
-        //uint256 _amountToFinance,
-        //uint256 _investmentFractions,
+        string memory _name,
+        uint256 _amountToFinance,
+        uint256 _investmentFractions,
         address _addUsdc
     ) public returns (address) {
         contractsCounter += 1;
 
-        string memory name = "nombre";
-        string memory symbol = string(
+        string memory _symbol = string(
             abi.encodePacked("TM", Strings.toString(contractsCounter))
         );
-        uint256 _amountToFinance = 10000;
-        uint256 _investmentFractions = 5;
 
         FinancingContract newContract = new FinancingContract(
-            name,
-            symbol,
+            _name,
+            _symbol,
             _amountToFinance,
             _investmentFractions,
             _addUsdc
@@ -119,7 +117,6 @@ contract FinancingContract is
 {
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
-    bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
 
     uint256 private _nextTokenId;
 
@@ -160,7 +157,6 @@ contract FinancingContract is
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(PAUSER_ROLE, msg.sender);
         _grantRole(MINTER_ROLE, msg.sender);
-        _grantRole(UPGRADER_ROLE, msg.sender);
 
         usdc = IUSDC(_addUsdc);
 

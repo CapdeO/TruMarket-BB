@@ -5,24 +5,32 @@ var { ethers, upgrades } = require("hardhat");
 describe("Testeando NFTFactory", () => {
     async function loadTest() {
         var [owner, alice, bob, carl] = await ethers.getSigners();
+
         var USDT = await ethers.getContractFactory("TetherUSD");
         var usdt = await USDT.deploy();
-        let usdtAddress = usdt.target;
         var Factory = await ethers.getContractFactory("Factory");
         var factory = await upgrades.deployProxy(Factory, [
-    
+
         ], { initializer: 'initialize', kind: 'uups' });
-        
+
         return { factory, usdt, owner, alice, bob, carl };
     }
 
     describe("deploy", () => {
         it("deploy", async () => {
-            var { factory, owner } = await loadFixture(loadTest);
+            var { factory, usdt, owner } = await loadFixture(loadTest);
 
-            let symbol = await factory.FactoryFunc()
+            let name = 'Contrato dos toneladas de banana'
+            let amountToFinance = 20000
+            let fractions = 15
 
-            console.log('symbol: ', symbol)
+            let nft1Address = await factory.FactoryFunc(name, amountToFinance, fractions, usdt.target)
+
+            let nft1Instance = new ethers.Contract(nft1Address, FinancingContract.interface, owner);
+
+            let namee = await nft1Instance.name();
+            console.log(namee);
+
         });
 
     });
