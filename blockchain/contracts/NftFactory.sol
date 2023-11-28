@@ -27,13 +27,26 @@ contract Factory is
 
     // Cantidad de contratos creados hasta el momento
     uint256 public contractsCounter;
-
     // Array con todas las direcciones de los contratos creados
-    address[] public addressesERC721Created;
+    address[] private addressesERC721Created;
+    // Enum con los estados de cada contrato
+    enum Status {
+        OnSale,
+        Sold,
+        Milestones,
+        Finished
+    }
+    // Mapping de estado de cada contrato
+    mapping(address => Status) public contractStatus;
+    // Mapping de profit de cada contrato finalizado
+    mapping(address => uint256) public profits;
 
     /* ========== Events ========== */
 
     event NewContractDeployed(address indexed deployedContract);
+    event StatusChanged(address contractAddress, Status newStatus);
+
+    /* ========== Constructor ========== */
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -49,6 +62,8 @@ contract Factory is
         _grantRole(PAUSER_ROLE, msg.sender);
         _grantRole(UPGRADER_ROLE, msg.sender);
     }
+
+    /* ========== Change state ========== */
 
     function pause() public onlyRole(PAUSER_ROLE) {
         _pause();
@@ -83,7 +98,17 @@ contract Factory is
             _addUsdc
         );
 
-        return address(newContract);
+        address newContractAdd = address(newContract);
+
+        addressesERC721Created.push(newContractAdd);
+        emit NewContractDeployed(newContractAdd);
+        return newContractAdd;
+    }
+
+    /* ========== View functions ========== */
+
+    function getAddresses() public view returns(address[] memory) {
+        return addressesERC721Created;
     }
 }
 
@@ -120,27 +145,22 @@ contract FinancingContract is
 
     uint256 private _nextTokenId;
 
-    uint256 amountToFinance;
-    uint256 investmentFractions;
+    uint256 public amountToFinance;
+    uint256 public investmentFractions;
     uint256 maxFractions;
     uint256 amountFractions;
-    uint256 fractionsToWithdraw;
     bool withdraw;
     bool completeCycle;
     address usdcAdd;
     IUSDC usdc;
 
-    mapping(address => bool) public investors;
-    mapping(address => bool) public supliers;
+    // mapping(address => bool) public investors;
+    // mapping(address => bool) public supliers;
 
-    modifier onlyInvestor() {
-        require(investors[msg.sender] == true);
-        _;
-    }
-    modifier onlySuplier() {
-        require(supliers[msg.sender] == true);
-        _;
-    }
+    // modifier onlyInvestor() {
+    //     require(investors[msg.sender] == true);
+    //     _;
+    // }
 
     event Invest(address investor, uint256 fractions);
     event TotalAmountFinanced();
@@ -166,7 +186,8 @@ contract FinancingContract is
         maxFractions = investmentFractions;
     }
 
-    function investAFraction(uint256 _fractions) public onlyInvestor {
+    function investAFraction(uint256 _fractions) public //onlyInvestor  
+    {
         require(_fractions > 0 && _fractions <= investmentFractions);
         require(_nextTokenId < investmentFractions);
         require(usdc.balanceOf(msg.sender) >= _fractions * amountFractions);
@@ -199,29 +220,17 @@ contract FinancingContract is
         transferFrom(address(this), msg.sender, amount);
     }
 
-    function adminAddInvestor(
-        address _investor
-    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        investors[_investor] = true;
-    }
+    // function adminAddInvestor(
+    //     address _investor
+    // ) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    //     investors[_investor] = true;
+    // }
 
-    function adminAddSupplier(
-        address _suplier
-    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        supliers[_suplier] = true;
-    }
-
-    function adminResInvestor(
-        address _investor
-    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        investors[_investor] = false;
-    }
-
-    function adminResSupplier(
-        address _suplier
-    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        supliers[_suplier] = false;
-    }
+    // function adminResInvestor(
+    //     address _investor
+    // ) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    //     investors[_investor] = false;
+    // }
 
     function pause() public onlyRole(PAUSER_ROLE) {
         _pause();

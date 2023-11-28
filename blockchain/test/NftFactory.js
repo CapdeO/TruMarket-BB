@@ -2,6 +2,10 @@ var { loadFixture } = require("@nomicfoundation/hardhat-network-helpers");
 var { expect } = require("chai");
 var { ethers, upgrades } = require("hardhat");
 
+async function getContract(_add) {
+    return await ethers.getContractAt("FinancingContract", _add);
+}
+
 describe("Testeando NFTFactory", () => {
     async function loadTest() {
         var [owner, alice, bob, carl] = await ethers.getSigners();
@@ -24,15 +28,21 @@ describe("Testeando NFTFactory", () => {
             let amountToFinance = 20000
             let fractions = 15
 
-            let nft1Address = await factory.FactoryFunc(name, amountToFinance, fractions, usdt.target)
+            let tx = await factory.FactoryFunc(name, amountToFinance, fractions, usdt.target);
+            let receipt = await tx.wait()
+            let address = receipt.logs[3].args[0]
+            let newERC721Contract = await getContract(address)
 
-            let nft1Instance = new ethers.Contract(nft1Address, FinancingContract.interface, owner);
-
-            let namee = await nft1Instance.name();
-            console.log(namee);
-
+            expect(await newERC721Contract.name()).to.be.equal(name)
+            expect(await newERC721Contract.symbol()).to.be.equal('TM1')
+            expect(await newERC721Contract.amountToFinance()).to.be.equal(amountToFinance)
+            expect(await newERC721Contract.investmentFractions()).to.be.equal(fractions)
+            expect(await factory.contractsCounter()).to.be.equal(1)
+            let array = await factory.getAddresses()
+            expect(array[0]).to.be.equal(address)
         });
-
     });
+
+
 
 });
