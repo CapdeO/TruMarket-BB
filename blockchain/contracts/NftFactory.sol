@@ -132,7 +132,7 @@ contract FinancingContract is
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
     // bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
 
-    // uint256 private _nextTokenId;
+    uint256 private _nextTokenId;
 
     uint256 public amountToFinance;
     uint256 public investmentFractions;
@@ -141,6 +141,8 @@ contract FinancingContract is
     // uint256 amountFractions;
     bool withdraw;
     IUSDT usdt;
+
+    mapping (uint256 => address) investors;
 
     enum Status {
         OnSale,
@@ -154,6 +156,7 @@ contract FinancingContract is
     event TotalAmountFinanced();
     event WithdrawComplete();
     event newMilestone(uint256 step, string description);
+    event BurnNft(uint256 tokenId);
 
     constructor(
         string memory _name,
@@ -226,12 +229,38 @@ contract FinancingContract is
             "USDT transfer error.");
 
         // Send tokens
+        require(_amount <= balanceOf(address(this)));
+        for (uint8 i=0; i<_amount; i++){
+            safeTransferFrom(address(this), msg.sender, _nextTokenId);
+            emit Transfer(address(this), msg.sender, _nextTokenId);
+            approve(address(this), _nextTokenId);
+            emit Approval(msg.sender, address(this), _nextTokenId);
+        // Update variables
+        investors[_nextTokenId] = msg.sender;
+        _nextTokenId++;
+
+        }
+
+        emit Invest(msg.sender, _amount);
     }
 
-    // function burnNft(uint256 tokenId, uint256 amount) public onlyRole(DEFAULT_ADMIN_ROLE) {
-    //     _burn(tokenId);
-    //     transferFrom(address(this), msg.sender, amount);
-    // }
+
+
+    function burnNft(uint256 profit) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        // Comprobaciones
+        require(profit > 0, "Profit can't be zero");
+        uint256 totalAmount = amountToFinance + ((amountToFinance * profit) / 100);
+        require(totalAmount <= balanceOf(msg.sender), "Admin does not have enough USDT balance");
+        usdt.transfer(address(this), totalAmount);
+        uint256 pay = fractionPrice + ((fractionPrice * profit) / 100);
+        for (uint256 i=0; i<investmentFractions; i++){
+            safeTransferFrom(investors[i], address(this), i);
+            emit Transfer(investors[i], address(this), i);
+            _burn(i);
+            emit BurnNft(i);
+            usdt.transferFrom(address(this), investors[i], pay);
+        }
+    }
 
     // function adminAddInvestor(
     //     address _investor
