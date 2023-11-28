@@ -29,22 +29,12 @@ contract Factory is
     uint256 public contractsCounter;
     // Array con todas las direcciones de los contratos creados
     address[] private addressesERC721Created;
-    // Enum con los estados de cada contrato
-    enum Status {
-        OnSale,
-        Sold,
-        Milestones,
-        Finished
-    }
-    // Mapping de estado de cada contrato
-    mapping(address => Status) public contractStatus;
     // Mapping de profit de cada contrato finalizado
     mapping(address => uint256) public profits;
 
     /* ========== Events ========== */
 
     event NewContractDeployed(address indexed deployedContract);
-    event StatusChanged(address contractAddress, Status newStatus);
 
     /* ========== Constructor ========== */
 
@@ -112,7 +102,7 @@ contract Factory is
     }
 }
 
-interface IUSDC {
+interface IUSDT {
     function transferFrom(
         address from,
         address to,
@@ -137,30 +127,28 @@ contract FinancingContract is
     ERC721,
     ERC721Enumerable,
     ERC721Pausable,
-    AccessControl,
-    ERC721Burnable
+    AccessControl
 {
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
-    bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
+    // bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
 
-    uint256 private _nextTokenId;
+    // uint256 private _nextTokenId;
 
     uint256 public amountToFinance;
     uint256 public investmentFractions;
-    uint256 maxFractions;
-    uint256 amountFractions;
+    uint256 public fractionPrice;
+    // uint256 maxFractions;
+    // uint256 amountFractions;
     bool withdraw;
-    bool completeCycle;
-    address usdcAdd;
-    IUSDC usdc;
+    IUSDT usdt;
 
-    // mapping(address => bool) public investors;
-    // mapping(address => bool) public supliers;
-
-    // modifier onlyInvestor() {
-    //     require(investors[msg.sender] == true);
-    //     _;
-    // }
+    enum Status {
+        OnSale,
+        Sold,
+        Milestones,
+        Finished
+    }
+    Status public contractStatus;
 
     event Invest(address investor, uint256 fractions);
     event TotalAmountFinanced();
@@ -172,53 +160,78 @@ contract FinancingContract is
         string memory _symbol,
         uint256 _amountToFinance,
         uint256 _investmentFractions,
-        address _addUsdc
+        address _addUsdt
     ) ERC721(_name, _symbol) {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(PAUSER_ROLE, msg.sender);
-        _grantRole(MINTER_ROLE, msg.sender);
+        // _grantRole(MINTER_ROLE, msg.sender);
 
-        usdc = IUSDC(_addUsdc);
+        usdt = IUSDT(_addUsdt);
 
         amountToFinance = _amountToFinance;
         investmentFractions = _investmentFractions;
-        amountFractions = amountToFinance / investmentFractions;
-        maxFractions = investmentFractions;
+        fractionPrice = amountToFinance / investmentFractions;
+        // amountFractions = amountToFinance / investmentFractions;
+        // maxFractions = investmentFractions;
+        // contractStatus = Status.OnSale;
+
+        safeMintBatch(_investmentFractions);
     }
 
-    function investAFraction(uint256 _fractions) public //onlyInvestor  
-    {
-        require(_fractions > 0 && _fractions <= investmentFractions);
-        require(_nextTokenId < investmentFractions);
-        require(usdc.balanceOf(msg.sender) >= _fractions * amountFractions);
-        uint amount = amountFractions * _fractions;
-        require(
-            usdc.allowance(msg.sender, address(this)) >= amount,
-            "You must approbe the amount first."
-        );
-        usdc.transferFrom(msg.sender, address(this), amount);
+    // function investAFraction(uint256 _fractions) public //onlyInvestor  
+    // {
+    //     require(_fractions > 0 && _fractions <= investmentFractions);
+    //     require(_nextTokenId < investmentFractions);
+    //     require(usdc.balanceOf(msg.sender) >= _fractions * amountFractions);
+    //     uint amount = amountFractions * _fractions;
+    //     require(
+    //         usdc.allowance(msg.sender, address(this)) >= amount,
+    //         "You must approbe the amount first."
+    //     );
+    //     usdc.transferFrom(msg.sender, address(this), amount);
 
-        for (uint256 i = 0; i < _fractions; i++) {
-            safeMint(msg.sender, _nextTokenId);
-        }
+    //     for (uint256 i = 0; i < _fractions; i++) {
+    //         safeMint(msg.sender, _nextTokenId);
+    //     }
 
-        investmentFractions = investmentFractions - _fractions;
-        emit Invest(msg.sender, _fractions);
-        if (investmentFractions == 0) {
-            withdraw = true;
-            emit TotalAmountFinanced(); // completar event
-        }
+    //     investmentFractions = investmentFractions - _fractions;
+    //     emit Invest(msg.sender, _fractions);
+    //     if (investmentFractions == 0) {
+    //         withdraw = true;
+    //         emit TotalAmountFinanced(); // completar event
+    //     }
+    // }
+
+    // function safeMint(address to, uint256 tokenId) internal {
+    //     tokenId = _nextTokenId++;
+    //     _safeMint(to, tokenId);
+    // }
+
+    function safeMintBatch(uint256 _amount) internal {
+        require(_amount > 0, 'Amount cannot be zero.');
+        for (uint8 i=0; i<_amount; i++) 
+            _safeMint(address(this), i);
     }
 
-    function safeMint(address to, uint256 tokenId) public {
-        tokenId = _nextTokenId++;
-        _safeMint(to, tokenId);
+    function buyFraction(uint256 _amount) public whenNotPaused {
+        uint256 priceInWei = (fractionPrice * (10**6)) * _amount;
+        require(contractStatus == Status.OnSale, "La compra esta cerrada.");
+        require(_amount > 0, "Amount cannot be zero.");
+        require(_amount < investmentFractions, "Amount to buy exceedes total fractions.");
+        require(usdt.balanceOf(msg.sender) >= priceInWei, 
+            "Inssuficient USDT balance.");
+        require(usdt.allowance(msg.sender, address(this)) >= priceInWei, 
+            "In order to proceed, you must approve the required amount of USDT.");
+        require(usdt.transferFrom(msg.sender, address(this), priceInWei), 
+            "USDT transfer error.");
+
+        // Send tokens
     }
 
-    function burnNft(uint256 tokenId, uint256 amount) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        _burn(tokenId);
-        transferFrom(address(this), msg.sender, amount);
-    }
+    // function burnNft(uint256 tokenId, uint256 amount) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    //     _burn(tokenId);
+    //     transferFrom(address(this), msg.sender, amount);
+    // }
 
     // function adminAddInvestor(
     //     address _investor

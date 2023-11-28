@@ -30,7 +30,8 @@ describe("Testeando NFTFactory", () => {
 
             let tx = await factory.FactoryFunc(name, amountToFinance, fractions, usdt.target);
             let receipt = await tx.wait()
-            let address = receipt.logs[3].args[0]
+            let array = await factory.getAddresses()
+            let address = array[0]
             let newERC721Contract = await getContract(address)
 
             expect(await newERC721Contract.name()).to.be.equal(name)
@@ -38,8 +39,8 @@ describe("Testeando NFTFactory", () => {
             expect(await newERC721Contract.amountToFinance()).to.be.equal(amountToFinance)
             expect(await newERC721Contract.investmentFractions()).to.be.equal(fractions)
             expect(await factory.contractsCounter()).to.be.equal(1)
-            let array = await factory.getAddresses()
-            expect(array[0]).to.be.equal(address)
+
+            // console.log(await newERC721Contract.contractStatus())
         });
     });
 
