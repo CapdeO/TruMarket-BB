@@ -217,6 +217,7 @@ contract FinancingContract is
     }
 
     function buyFraction(uint256 _amount) public whenNotPaused {
+        // Se realizan las comprobaciones.
         uint256 priceInWei = (fractionPrice * (10**6)) * _amount;
         require(contractStatus == Status.OnSale, "La compra esta cerrada.");
         require(_amount > 0, "Amount cannot be zero.");
@@ -227,9 +228,9 @@ contract FinancingContract is
             "In order to proceed, you must approve the required amount of USDT.");
         require(usdt.transferFrom(msg.sender, address(this), priceInWei), 
             "USDT transfer error.");
-
-        // Send tokens
         require(_amount <= balanceOf(address(this)));
+
+        // Se transfiere los NFT al inversor y este le da el approve al contrato.
         for (uint8 i=0; i<_amount; i++){
             safeTransferFrom(address(this), msg.sender, _nextTokenId);
             emit Transfer(address(this), msg.sender, _nextTokenId);
@@ -251,8 +252,12 @@ contract FinancingContract is
         require(profit > 0, "Profit can't be zero");
         uint256 totalAmount = amountToFinance + ((amountToFinance * profit) / 100);
         require(totalAmount <= balanceOf(msg.sender), "Admin does not have enough USDT balance");
+        // El admin transfiere el monto total a devolver mas el profit
         usdt.transfer(address(this), totalAmount);
+        // Se calcula el valor de cada fraccion mas su profit
         uint256 pay = fractionPrice + ((fractionPrice * profit) / 100);
+        // Se transfieren los NFT desde los inversores hacia el contrato y se queman.
+        // Y se le paga a su respectivo inversor el valor de la fraccion mas el profit.
         for (uint256 i=0; i<investmentFractions; i++){
             safeTransferFrom(investors[i], address(this), i);
             emit Transfer(investors[i], address(this), i);
