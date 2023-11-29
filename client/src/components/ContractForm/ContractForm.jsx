@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Button from 'react-bootstrap/Button';
 import Form from 'react-bootstrap/Form';
 import './ContractForm.scss'
@@ -6,13 +6,21 @@ import Fade from 'react-reveal/Fade';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import Alerta from '../../components/Alerta/Alerta'
+import WaitingTransaction from '../WaitingTransaction/WaitingTransaction';
+import useBlockchain from '../../hooks/useBlockchain'
 
 const ContractForm = () => {
+
+    const nameRef = useRef(null);
 
     const [totalAmount, setTotalAmount] = useState('');
     const [NFTsAmount, setNFTsAmount] = useState('');
     const [NFTPrice, setNFTPrice] = useState(0);
     const [milestones, setMilestones] = useState(3);
+
+    const {
+        factoryFunc
+    } = useBlockchain()
 
     // MILESTONE ------------------------------------------------------------------
 
@@ -42,26 +50,32 @@ const ContractForm = () => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        // Validación de nombres y porcentajes
-        const hasEmptyNames = milestoneData.some((milestone) => milestone.name.trim() === '');
-        const totalPercentage = milestoneData.reduce((sum, milestone) => sum + parseFloat(milestone.percentage) || 0, 0);
+        let nameInput = nameRef.current.value
 
-        if (hasEmptyNames) {
-            Alerta({
-                title: 'Error',
-                text: `Por favor, completa todos los nombres de los hitos.`,
-                img: Error,
+        WaitingTransaction({
+            title: 'Creating NFT Collection',
+            text: 'Processing transaction. Please wait',
+            active: true,
+        })
+        factoryFunc(nameInput, totalAmount, NFTsAmount)
+            .then(async (tx) => {
+                await tx.wait()
+                WaitingTransaction({ active: false })
+                Alerta({
+                    title: 'Success',
+                    text: `Name: ${nameInput}. Amount: ${totalAmount}. NFTs: ${NFTsAmount}`,
+                    img: Error,
+                })
             })
-        } else if (totalPercentage != 100) {
-            Alerta({
-                title: 'Error',
-                text: `La suma de los porcentajes debe ser igual a 100%.`,
-                img: Error,
+            .catch((error) => {
+                console.error(error)
+                Alerta({
+                    title: 'Error',
+                    text: 'Transaction error',
+                    img: Error,
+                })
             })
-        } else {
-            // Puedes realizar la acción de submit aquí
-            console.log('Milestone Data:', milestoneData);
-        }
+
     };
 
     // MILESTONE ------------------------------------------------------------------
@@ -81,7 +95,6 @@ const ContractForm = () => {
         }
     };
 
-
     const handleTotalAmountChange = (event) => {
         if (event.target.value > 0 || event.target.value == '')
             setTotalAmount(event.target.value);
@@ -100,7 +113,7 @@ const ContractForm = () => {
                 <Form onSubmit={handleSubmit}>
                     <Form.Group className="mb-3" controlId="formName">
                         <Form.Label>Contract Name</Form.Label>
-                        <Form.Control type="text" placeholder="Enter name" required />
+                        <Form.Control ref={nameRef} type="text" placeholder="Enter name" required />
                     </Form.Group>
 
                     <Form.Group className="mb-3" controlId="formTotalAmount">

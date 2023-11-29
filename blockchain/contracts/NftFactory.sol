@@ -130,15 +130,12 @@ contract FinancingContract is
     AccessControl
 {
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
-    // bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
 
     uint256 private _nextTokenId;
 
     uint256 public amountToFinance;
     uint256 public investmentFractions;
     uint256 public fractionPrice;
-    // uint256 maxFractions;
-    // uint256 amountFractions;
     bool withdraw;
     IUSDT usdt;
 
@@ -167,48 +164,15 @@ contract FinancingContract is
     ) ERC721(_name, _symbol) {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(PAUSER_ROLE, msg.sender);
-        // _grantRole(MINTER_ROLE, msg.sender);
 
         usdt = IUSDT(_addUsdt);
 
         amountToFinance = _amountToFinance;
         investmentFractions = _investmentFractions;
         fractionPrice = amountToFinance / investmentFractions;
-        // amountFractions = amountToFinance / investmentFractions;
-        // maxFractions = investmentFractions;
-        // contractStatus = Status.OnSale;
 
         safeMintBatch(_investmentFractions);
     }
-
-    // function investAFraction(uint256 _fractions) public //onlyInvestor  
-    // {
-    //     require(_fractions > 0 && _fractions <= investmentFractions);
-    //     require(_nextTokenId < investmentFractions);
-    //     require(usdc.balanceOf(msg.sender) >= _fractions * amountFractions);
-    //     uint amount = amountFractions * _fractions;
-    //     require(
-    //         usdc.allowance(msg.sender, address(this)) >= amount,
-    //         "You must approbe the amount first."
-    //     );
-    //     usdc.transferFrom(msg.sender, address(this), amount);
-
-    //     for (uint256 i = 0; i < _fractions; i++) {
-    //         safeMint(msg.sender, _nextTokenId);
-    //     }
-
-    //     investmentFractions = investmentFractions - _fractions;
-    //     emit Invest(msg.sender, _fractions);
-    //     if (investmentFractions == 0) {
-    //         withdraw = true;
-    //         emit TotalAmountFinanced(); // completar event
-    //     }
-    // }
-
-    // function safeMint(address to, uint256 tokenId) internal {
-    //     tokenId = _nextTokenId++;
-    //     _safeMint(to, tokenId);
-    // }
 
     function safeMintBatch(uint256 _amount) internal {
         require(_amount > 0, 'Amount cannot be zero.');
@@ -233,25 +197,26 @@ contract FinancingContract is
         // Se transfiere los NFT al inversor y este le da el approve al contrato.
         for (uint8 i=0; i<_amount; i++){
             safeTransferFrom(address(this), msg.sender, _nextTokenId);
-            emit Transfer(address(this), msg.sender, _nextTokenId);
+            // emit Transfer(address(this), msg.sender, _nextTokenId);
             approve(address(this), _nextTokenId);
-            emit Approval(msg.sender, address(this), _nextTokenId);
+            // emit Approval(msg.sender, address(this), _nextTokenId);
         // Update variables
         investors[_nextTokenId] = msg.sender;
         _nextTokenId++;
-
         }
 
         emit Invest(msg.sender, _amount);
+
+        if (balanceOf(address(this)) == 0)
+            contractStatus = Status.Sold;
     }
 
-
-
-    function burnNft(uint256 profit) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function buyBack(uint256 profit) public onlyRole(DEFAULT_ADMIN_ROLE) {
         // Comprobaciones
         require(profit > 0, "Profit can't be zero");
         uint256 totalAmount = amountToFinance + ((amountToFinance * profit) / 100);
-        require(totalAmount <= balanceOf(msg.sender), "Admin does not have enough USDT balance");
+        totalAmount = totalAmount * (10**6);
+        require(totalAmount <= usdt.balanceOf(msg.sender), "Admin does not have enough USDT balance");
         // El admin transfiere el monto total a devolver mas el profit
         usdt.transfer(address(this), totalAmount);
         // Se calcula el valor de cada fraccion mas su profit
@@ -267,17 +232,12 @@ contract FinancingContract is
         }
     }
 
-    // function adminAddInvestor(
-    //     address _investor
-    // ) public onlyRole(DEFAULT_ADMIN_ROLE) {
-    //     investors[_investor] = true;
-    // }
-
-    // function adminResInvestor(
-    //     address _investor
-    // ) public onlyRole(DEFAULT_ADMIN_ROLE) {
-    //     investors[_investor] = false;
-    // }
+    function withdrawUSDT() public onlyRole(DEFAULT_ADMIN_ROLE) {
+        uint256 contractBalance = usdt.balanceOf(address(this));
+        require(contractStatus == Status.Sold, "Sale is open.");
+        require(contractBalance > 0, "Contract without balance");
+        require(usdt.transfer(msg.sender, contractBalance), "USDT transfer error.");
+    }
 
     function pause() public onlyRole(PAUSER_ROLE) {
         _pause();
@@ -305,3 +265,11 @@ contract FinancingContract is
         super._beforeTokenTransfer(from, to, tokenId, batchSize);
     }
 }
+
+// Pendientes:
+
+// - Override de funciones transfer para evitar que envien tokens
+// - Cambio de Status cuando se venden todas las fractions (Sold)            -----> Done
+// - Cambio de estado cuando el admin retira el monto financiado (Milestones)-----> Done
+// - Cambio de estado cuando el admin hace el buyBack (Finished)
+// - Ver calculo variable pay en buyBack
