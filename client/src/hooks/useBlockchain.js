@@ -80,19 +80,28 @@ const useBlockchain = () => {
         const signer = await getProvider().getSigner()
         const contract = getFactoryContract(signer)
         return contract.FactoryFunc.send
-            (
-                name,
-                amountToFinance,
-                investmentFractions,
-                USDT_CONTRACT
-            )
+        (
+            name,
+            amountToFinance,
+            investmentFractions,
+            USDT_CONTRACT
+        )
+    }
+
+    const getAddresses = async () => {
+        const signer = await getProvider().getSigner()
+        const contract = getFactoryContract(signer)
+        var addresses = await contract.getAddresses()
+
+        return addresses
     }
 
     return {
         connectWallet,
         getProvider,
         address,
-        factoryFunc
+        factoryFunc,
+        getAddresses
     }
 }
 

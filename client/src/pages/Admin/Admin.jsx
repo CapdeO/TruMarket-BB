@@ -6,6 +6,7 @@ import './Admin.scss'
 import '../../utils/style/style.scss'
 import BigButton from '../../components/BigButton/BigButton';
 import ContractForm from '../../components/ContractForm/ContractForm';
+import NFTs from '../../components/NFTs/NFTs';
 
 
 
@@ -47,7 +48,7 @@ const Admin = () => {
 
             {NFTsList && (
                 <Container className={`margen`}>
-                    <h2>DIV2</h2>
+                    <NFTs />
                 </Container>
             )}
 

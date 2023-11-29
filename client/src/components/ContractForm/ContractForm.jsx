@@ -48,7 +48,7 @@ const ContractForm = () => {
         );
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         let nameInput = nameRef.current.value
 
@@ -75,7 +75,6 @@ const ContractForm = () => {
                     img: Error,
                 })
             })
-
     };
 
     // MILESTONE ------------------------------------------------------------------
