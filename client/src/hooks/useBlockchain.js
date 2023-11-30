@@ -112,11 +112,15 @@ const useBlockchain = () => {
                     const amountToFinance = await contract.amountToFinance();
                     const investmentFractions = await contract.investmentFractions();
                     const contractStatus = await contract.contractStatus();
+                    var sold = await contract.balanceOf(contract.target)
+                    sold = investmentFractions - sold
+
                     return {
                         name,
                         amountToFinance,
                         investmentFractions,
-                        contractStatus
+                        contractStatus,
+                        sold
                     };
                 })
             );

@@ -1,9 +1,10 @@
 .marketplace {
-    min-height: 
-    100vh;
+    min-height: 100vh;
+    padding-top: 10vh;
     display: flex;
     justify-content: center;
     align-items: center;
+    flex-wrap: wrap;
 
     background-image: url('../../assets/fruits.jpg');
     background-size: cover;

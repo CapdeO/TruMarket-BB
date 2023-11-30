@@ -55,11 +55,14 @@ const NFTs = () => {
                     <Col className='centrado orange'>
                         Amount
                     </Col>
-                    <Col xs={1} className='centrado orange'>
-                        NFTs
+                    <Col className='centrado orange'>
+                        Sold
                     </Col>
                     <Col className='centrado orange'>
                         Status
+                    </Col>
+                    <Col className='centrado'>
+                        
                     </Col>
                 </Row>
 
@@ -75,11 +78,16 @@ const NFTs = () => {
                         <Col className='centrado'>
                             {Number(nft.amountToFinance)}
                         </Col>
-                        <Col xs={1} className='centrado'>
-                            {Number(nft.investmentFractions)} 
+                        <Col className='centrado'>
+                            {Number(nft.sold)} /{Number(nft.investmentFractions)} 
                         </Col>
                         <Col className='centrado'>
                             {getStatusLabel(Number(nft.contractStatus))}
+                        </Col>
+                        <Col className='centrado'>
+                            <Button variant="primary" disabled>
+                                Withdraw
+                            </Button>
                         </Col>
                     </Row>
                     </Fade>
