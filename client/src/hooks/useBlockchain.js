@@ -1,5 +1,6 @@
 import { BrowserProvider, JsonRpcProvider, Contract, ethers } from 'ethers'
 import FactoryABI from '../abis/Factory.json'
+import FinancingContract from '../abis/FinancingContract.json'
 import { useState } from 'react'
 
 const FACTORY_CONTRACT = process.env.REACT_APP_FACTORY_CONTRACT_ADDRESS
@@ -14,6 +15,10 @@ const useBlockchain = () => {
 
     const getFactoryContract = (provider) => {
         return new Contract(FACTORY_CONTRACT, FactoryABI.abi, provider)
+    }
+
+    const getFinancingContract = (provider, address) => {
+        return new Contract(address, FinancingContract.abi, provider)
     }
 
     const addMumbaiNetwork = async (provider) => {
@@ -96,12 +101,39 @@ const useBlockchain = () => {
         return addresses
     }
 
+    const getNFTsList = async () => {
+        try {
+            var list = await getAddresses()
+            const signer = await getProvider().getSigner();
+            const nftsInfo = await Promise.all(
+                list.map(async (address) => {
+                    const contract = getFinancingContract(signer, address);
+                    const name = await contract.name();
+                    const amountToFinance = await contract.amountToFinance();
+                    const investmentFractions = await contract.investmentFractions();
+                    const contractStatus = await contract.contractStatus();
+                    return {
+                        name,
+                        amountToFinance,
+                        investmentFractions,
+                        contractStatus
+                    };
+                })
+            );
+            return nftsInfo;
+        } catch (error) {
+            console.error(error);
+            throw error;
+        }
+    };
+
     return {
         connectWallet,
         getProvider,
         address,
         factoryFunc,
-        getAddresses
+        getAddresses,
+        getNFTsList
     }
 }
 

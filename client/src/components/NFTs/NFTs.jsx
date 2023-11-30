@@ -11,25 +11,28 @@ import useBlockchain from '../../hooks/useBlockchain'
 
 const NFTs = () => {
 
-    const {
-        getAddresses
-    } = useBlockchain()
+    const { getNFTsList } = useBlockchain()
+    const [nftsInfo, setNFTsInfo] = useState([])
 
-    // const getCollections = async () => {
-    //     await getAddresses()
-    //         .then(async (tx) => {
-    //             await tx.wait()
-    //             console.log(tx.response)
-    //         })
-    //         .catch((error) => {
-    //             console.error(error)
-    //         })
-    // }
+    const getStatusLabel = (status) => {
+        switch (status) {
+            case 0:
+                return "On Sale";
+            case 1:
+                return "Sold";
+            case 2:
+                return "Milestones";
+            case 3:
+                return "Finished";
+            default:
+                return "Unknown Status";
+        }
+    };
 
     const getCollections = async () => {
         try {
-            const tx = await getAddresses();
-            console.log(tx.response);
+            const nftsInfo = await getNFTsList();
+            setNFTsInfo(nftsInfo);
         } catch (error) {
             console.error(error);
         }
@@ -42,11 +45,48 @@ const NFTs = () => {
     return (
         <Fade left>
             <div className='nfts'>
-                NFTs
+                <Row>
+                    <Col xs={1} className='centrado orange'>
+                        #
+                    </Col>
+                    <Col xs={5} className='centrado orange'>
+                        Name
+                    </Col>
+                    <Col className='centrado orange'>
+                        Amount
+                    </Col>
+                    <Col xs={1} className='centrado orange'>
+                        NFTs
+                    </Col>
+                    <Col className='centrado orange'>
+                        Status
+                    </Col>
+                </Row>
+
+                {nftsInfo.map((nft, index) => (
+                    <Fade right>
+                    <Row key={index}>
+                        <Col xs={1} className='centrado'>
+                            {index + 1}
+                        </Col>
+                        <Col xs={5} className='centrado'>
+                            {nft.name}
+                        </Col>
+                        <Col className='centrado'>
+                            {Number(nft.amountToFinance)}
+                        </Col>
+                        <Col xs={1} className='centrado'>
+                            {Number(nft.investmentFractions)} 
+                        </Col>
+                        <Col className='centrado'>
+                            {getStatusLabel(Number(nft.contractStatus))}
+                        </Col>
+                    </Row>
+                    </Fade>
+                ))}
             </div>
         </Fade>
-
-    )
+    );
 }
 
 export default NFTs
