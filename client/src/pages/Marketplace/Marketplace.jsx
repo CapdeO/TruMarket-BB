@@ -30,9 +30,9 @@ const Marketplace = () => {
                 return (
                     <Card2 key={index} add={nft.address} name={nft.name} price={Number(nft.fractionPrice)} investedFractions={nft.investedFractions} sold={`${nft.sold}/${nft.investmentFractions}`} />
                 );
-            })}
+            })} 
         </div>
     );
 }
-
+// test
 export default Marketplace
