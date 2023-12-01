@@ -38,6 +38,10 @@ const NFTs = () => {
         }
     }
 
+    const handleWithdraw = async (_address) => {
+        console.log('Withdraw de: ', _address)
+    }
+
     useEffect(() => {
         getCollections()
     }, []);
@@ -85,11 +89,14 @@ const NFTs = () => {
                             {getStatusLabel(Number(nft.contractStatus))}
                         </Col>
                         <Col className='centrado'>
-                            <Button variant="primary" disabled>
-                                Withdraw
-                            </Button>
+                            {Number(nft.sold) === Number(nft.investmentFractions) && (
+                                <Button variant="primary" onClick={() => handleWithdraw(nft.address)}>
+                                    Withdraw
+                                </Button>
+                            )}
                         </Col>
                     </Row>
+                    
                     </Fade>
                 ))}
             </div>

@@ -147,8 +147,7 @@ const useBlockchain = () => {
                     const investmentFractions = await contract.investmentFractions();
                     const contractStatus = await contract.contractStatus();
                     const fractionPrice = await contract.fractionPrice()
-                    var sold = await contract.balanceOf(contract.target)
-                    sold = investmentFractions - sold
+                    var sold = await contract.totalSupply()
 
                     return {
                         address,

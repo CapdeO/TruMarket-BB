@@ -177,7 +177,7 @@ contract FinancingContract is
         uint256 priceInWei = (fractionPrice * (10**6)) * _amount;
         require(contractStatus == Status.OnSale, "The sale is closed.");
         require(_amount > 0, "Amount cannot be zero.");
-        require(_amount < investmentFractions, "Amount to buy exceedes total fractions.");
+        require(_amount < investmentFractions + 1, "Amount to buy exceedes total fractions.");
         require(usdt.balanceOf(msg.sender) >= priceInWei, 
             "Inssuficient USDT balance.");
         require(usdt.allowance(msg.sender, address(this)) >= priceInWei, 
@@ -253,3 +253,4 @@ contract FinancingContract is
 // - Cambio de estado cuando el admin retira el monto financiado (Milestones)-----> Done
 // - Cambio de estado cuando el admin hace el buyBack (Finished)
 // - Ver calculo variable pay en buyBack
+// - Verificar ERC-721 creado desde el Factory, posible ???
