@@ -1,6 +1,7 @@
 import { BrowserProvider, JsonRpcProvider, Contract, ethers } from 'ethers'
 import FactoryABI from '../abis/Factory.json'
 import FinancingContract from '../abis/FinancingContract.json'
+import USDTABI from '../abis/USDT.json'
 import { useState } from 'react'
 
 const FACTORY_CONTRACT = process.env.REACT_APP_FACTORY_CONTRACT_ADDRESS
@@ -19,6 +20,10 @@ const useBlockchain = () => {
 
     const getFinancingContract = (provider, address) => {
         return new Contract(address, FinancingContract.abi, provider)
+    }
+
+    const getUSDTContract = (provider) => {
+        return new Contract(USDT_CONTRACT, USDTABI.abi, provider)
     }
 
     const addMumbaiNetwork = async (provider) => {
@@ -85,12 +90,41 @@ const useBlockchain = () => {
         const signer = await getProvider().getSigner()
         const contract = getFactoryContract(signer)
         return contract.FactoryFunc.send
-        (
-            name,
-            amountToFinance,
-            investmentFractions,
-            USDT_CONTRACT
-        )
+            (
+                name,
+                amountToFinance,
+                investmentFractions,
+                USDT_CONTRACT
+            )
+    }
+
+    const getUSDTBalance = async () => {
+        const signer = await getProvider().getSigner()
+        const contract = getUSDTContract(signer)
+        var balance = await contract.balanceOf(signer.address)
+    
+        return balance
+    }
+
+    const getAllowance = async (_address) => {
+        const signer = await getProvider().getSigner()
+        const contract = getUSDTContract(signer)
+
+        return contract.allowance(signer.address, _address)
+    }
+
+    const approbeFinancingContract = async (_address, _amountInWei) => {
+        const signer = await getProvider().getSigner()
+        const contract = getUSDTContract(signer);
+
+        return contract.approve.send(_address, _amountInWei)
+    }
+
+    const invest = async (_address, _amount) => {
+        const signer = await getProvider().getSigner()
+        const contract = getFinancingContract(signer, _address);
+
+        return contract.buyFraction(_amount)
     }
 
     const getAddresses = async () => {
@@ -112,14 +146,17 @@ const useBlockchain = () => {
                     const amountToFinance = await contract.amountToFinance();
                     const investmentFractions = await contract.investmentFractions();
                     const contractStatus = await contract.contractStatus();
+                    const fractionPrice = await contract.fractionPrice()
                     var sold = await contract.balanceOf(contract.target)
                     sold = investmentFractions - sold
 
                     return {
+                        address,
                         name,
                         amountToFinance,
                         investmentFractions,
                         contractStatus,
+                        fractionPrice,
                         sold
                     };
                 })
@@ -135,9 +172,13 @@ const useBlockchain = () => {
         connectWallet,
         getProvider,
         address,
+        getUSDTBalance,
         factoryFunc,
         getAddresses,
-        getNFTsList
+        getNFTsList,
+        getAllowance,
+        approbeFinancingContract,
+        invest
     }
 }
 

@@ -171,19 +171,11 @@ contract FinancingContract is
         investmentFractions = _investmentFractions;
         fractionPrice = amountToFinance / investmentFractions;
 
-        safeMintBatch(_investmentFractions);
-    }
-
-    function safeMintBatch(uint256 _amount) internal {
-        require(_amount > 0, 'Amount cannot be zero.');
-        for (uint8 i=0; i<_amount; i++) 
-            _safeMint(address(this), i);
     }
 
     function buyFraction(uint256 _amount) public whenNotPaused {
-        // Se realizan las comprobaciones.
         uint256 priceInWei = (fractionPrice * (10**6)) * _amount;
-        require(contractStatus == Status.OnSale, "La compra esta cerrada.");
+        require(contractStatus == Status.OnSale, "The sale is closed.");
         require(_amount > 0, "Amount cannot be zero.");
         require(_amount < investmentFractions, "Amount to buy exceedes total fractions.");
         require(usdt.balanceOf(msg.sender) >= priceInWei, 
@@ -192,40 +184,28 @@ contract FinancingContract is
             "In order to proceed, you must approve the required amount of USDT.");
         require(usdt.transferFrom(msg.sender, address(this), priceInWei), 
             "USDT transfer error.");
-        require(_amount <= balanceOf(address(this)));
 
-        // Se transfiere los NFT al inversor y este le da el approve al contrato.
-        for (uint8 i=0; i<_amount; i++){
-            safeTransferFrom(address(this), msg.sender, _nextTokenId);
-            // emit Transfer(address(this), msg.sender, _nextTokenId);
+        for (uint8 i=0; i<_amount; i++) {
+            _safeMint(msg.sender, _nextTokenId);
             approve(address(this), _nextTokenId);
-            // emit Approval(msg.sender, address(this), _nextTokenId);
-        // Update variables
-        investors[_nextTokenId] = msg.sender;
-        _nextTokenId++;
+            _nextTokenId++;
         }
 
         emit Invest(msg.sender, _amount);
 
-        if (balanceOf(address(this)) == 0)
+        if (_nextTokenId == (investmentFractions + 1))
             contractStatus = Status.Sold;
     }
 
     function buyBack(uint256 profit) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        // Comprobaciones
         require(profit > 0, "Profit can't be zero");
         uint256 totalAmount = amountToFinance + ((amountToFinance * profit) / 100);
         totalAmount = totalAmount * (10**6);
         require(totalAmount <= usdt.balanceOf(msg.sender), "Admin does not have enough USDT balance");
-        // El admin transfiere el monto total a devolver mas el profit
         usdt.transfer(address(this), totalAmount);
-        // Se calcula el valor de cada fraccion mas su profit
         uint256 pay = fractionPrice + ((fractionPrice * profit) / 100);
-        // Se transfieren los NFT desde los inversores hacia el contrato y se queman.
-        // Y se le paga a su respectivo inversor el valor de la fraccion mas el profit.
         for (uint256 i=0; i<investmentFractions; i++){
             safeTransferFrom(investors[i], address(this), i);
-            emit Transfer(investors[i], address(this), i);
             _burn(i);
             emit BurnNft(i);
             usdt.transferFrom(address(this), investors[i], pay);
@@ -234,9 +214,9 @@ contract FinancingContract is
 
     function withdrawUSDT() public onlyRole(DEFAULT_ADMIN_ROLE) {
         uint256 contractBalance = usdt.balanceOf(address(this));
-        require(contractStatus == Status.Sold, "Sale is open.");
-        require(contractBalance > 0, "Contract without balance");
+        require(contractStatus == Status.Sold, "Not on sold status.");
         require(usdt.transfer(msg.sender, contractBalance), "USDT transfer error.");
+        contractStatus = Status.Milestones;
     }
 
     function pause() public onlyRole(PAUSER_ROLE) {

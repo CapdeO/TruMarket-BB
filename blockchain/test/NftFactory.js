@@ -20,9 +20,9 @@ describe("Testeando NFTFactory", () => {
         return { factory, usdt, owner, alice, bob, carl };
     }
 
-    describe("deploy", () => {
-        it("deploy", async () => {
-            var { factory, usdt, owner } = await loadFixture(loadTest);
+    describe("Deploy", () => {
+        it("Parameters", async () => {
+            var { factory, usdt } = await loadFixture(loadTest);
 
             let name = 'Contrato dos toneladas de banana'
             let amountToFinance = 20000
@@ -39,8 +39,30 @@ describe("Testeando NFTFactory", () => {
             expect(await newERC721Contract.amountToFinance()).to.be.equal(amountToFinance)
             expect(await newERC721Contract.investmentFractions()).to.be.equal(fractions)
             expect(await factory.contractsCounter()).to.be.equal(1)
+        });
 
-            // console.log(await newERC721Contract.contractStatus())
+        it("Invest", async () => {
+            var { factory, usdt, alice } = await loadFixture(loadTest);
+
+            let name = 'Contract'
+            let amountToFinance = 20000
+            let fractions = 200
+            let price = (amountToFinance / fractions) * (10 ** 6)
+            await factory.FactoryFunc(name, amountToFinance, fractions, usdt.target);
+            let array = await factory.getAddresses()
+            let address = array[0]
+            let newERC721Contract = await getContract(address)
+            let NFTsAmount = 5
+            let NFTsPriceInWei = NFTsAmount * price
+
+            await usdt.mint(alice, NFTsPriceInWei)
+            await usdt.connect(alice).approve(newERC721Contract.target, NFTsPriceInWei)
+
+            await newERC721Contract.connect(alice).buyFraction(NFTsAmount)
+
+            expect(await newERC721Contract.balanceOf(alice.address)).to.be.equal(NFTsAmount)
+            expect(await usdt.balanceOf(newERC721Contract.target)).to.be.equal(NFTsPriceInWei)
+            expect(await usdt.balanceOf(alice.address)).to.be.equal(0)
         });
     });
 
