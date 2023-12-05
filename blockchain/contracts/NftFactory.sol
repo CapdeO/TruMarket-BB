@@ -32,6 +32,8 @@ contract Factory is
     // Mapping de profit de cada contrato finalizado
     mapping(address => uint256) public profits;
 
+    // Struct con financiacion, profits
+
     /* ========== Events ========== */
 
     event NewContractDeployed(address indexed deployedContract);
@@ -68,6 +70,8 @@ contract Factory is
     ) internal override onlyRole(UPGRADER_ROLE) {}
 
     // Emision de los nuevos smart contracts
+
+    // Minimal proxy --> clones de smart contracts menor costo
     function FactoryFunc(
         string memory _name,
         uint256 _amountToFinance,
@@ -185,9 +189,9 @@ contract FinancingContract is
         require(usdt.transferFrom(msg.sender, address(this), priceInWei), 
             "USDT transfer error.");
 
+        // Ver ERC-1155 Mint Batch
         for (uint8 i=0; i<_amount; i++) {
             _safeMint(msg.sender, _nextTokenId);
-            approve(address(this), _nextTokenId);
             _nextTokenId++;
         }
 
@@ -197,20 +201,28 @@ contract FinancingContract is
             contractStatus = Status.Sold;
     }
 
+    // Ver for loop (gas)
+    // Incrementar pozo
     function buyBack(uint256 profit) public onlyRole(DEFAULT_ADMIN_ROLE) {
         require(profit > 0, "Profit can't be zero");
-        uint256 totalAmount = amountToFinance + ((amountToFinance * profit) / 100);
-        totalAmount = totalAmount * (10**6);
-        require(totalAmount <= usdt.balanceOf(msg.sender), "Admin does not have enough USDT balance");
-        usdt.transfer(address(this), totalAmount);
-        uint256 pay = fractionPrice + ((fractionPrice * profit) / 100);
-        for (uint256 i=0; i<investmentFractions; i++){
-            safeTransferFrom(investors[i], address(this), i);
-            _burn(i);
-            emit BurnNft(i);
-            usdt.transferFrom(address(this), investors[i], pay);
-        }
+        // uint256 totalAmount = amountToFinance + ((amountToFinance * profit) / 100);
+        // totalAmount = totalAmount * (10**6);
+        // require(totalAmount <= usdt.balanceOf(msg.sender), "Admin does not have enough USDT balance");
+        // // Allowance (via frontend)
+        // usdt.transferFrom(msg.sender, address(this), totalAmount);
+        // uint256 pay = fractionPrice + ((fractionPrice * profit) / 100);
+
+        // Metodo "pull" --> reclamo manual
+
+        // for (uint256 i=0; i<investmentFractions; i++){
+        //     // safeTransferFrom(investors[i], address(this), i);
+        //     _burn(i);
+        //     emit BurnNft(i);
+        //     usdt.transfer(investors[i], pay);
+        // }
     }
+
+    // function retiro manual
 
     function withdrawUSDT() public onlyRole(DEFAULT_ADMIN_ROLE) {
         uint256 contractBalance = usdt.balanceOf(address(this));
