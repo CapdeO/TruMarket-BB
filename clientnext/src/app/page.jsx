@@ -12,7 +12,8 @@ import {
   useContract, 
   useContractRead, 
   useContractWrite,
-  walletConnect 
+  walletConnect,
+  Web3Button
 } from "@thirdweb-dev/react"
 
 import './page.scss'
@@ -49,9 +50,7 @@ function App() {
   const address = useAddress()
   const factoryAdd = FACTORY_ADDRESS
 
-  const {
-    contract: factoryContract
-  } = useContract(factoryAdd)
+  const { contract: factoryContract } = useContract(factoryAdd)
 
   const { data, isLoading, error } = useContractRead(factoryContract, "getAddresses")
 
