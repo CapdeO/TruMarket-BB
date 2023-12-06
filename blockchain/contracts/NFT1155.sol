@@ -7,11 +7,12 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol"
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
-// ==========---------->>>>>   Librerias para el ERC721
-import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Pausable.sol";
+// ==========---------->>>>>   Librerias para el ERC1155
+import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
+import "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155Pausable.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
+import "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155Burnable.sol";
+import "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155Supply.sol";
 
 contract Factory is
     Initializable,
@@ -25,7 +26,7 @@ contract Factory is
     bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
 
     uint256 public contractsCounter;
-    address[] private addressesERC721Created;
+    address[] private addressesERC1155Created;
     mapping(address => uint256) public profits;
 
     // Struct con financiacion, profits
@@ -78,7 +79,7 @@ contract Factory is
             abi.encodePacked("TM", Strings.toString(contractsCounter))
         );
 
-        FinancingContract newContract = new FinancingContract(
+        FinancingContract1155 newContract = new FinancingContract1155(
             _name,
             _symbol,
             _amountToFinance,
@@ -88,7 +89,7 @@ contract Factory is
 
         address newContractAdd = address(newContract);
 
-        addressesERC721Created.push(newContractAdd);
+        addressesERC1155Created.push(newContractAdd);
         emit NewContractDeployed(newContractAdd);
         return newContractAdd;
     }
@@ -96,7 +97,7 @@ contract Factory is
     /* ========== View functions ========== */
 
     function getAddresses() public view returns(address[] memory) {
-        return addressesERC721Created;
+        return addressesERC1155Created;
     }
 }
 
@@ -121,12 +122,7 @@ interface IUSDT {
     function balanceOf(address account) external view returns (uint256);
 }
 
-contract FinancingContract is
-    ERC721,
-    ERC721Enumerable,
-    ERC721Pausable,
-    AccessControl
-{
+contract FinancingContract1155 is ERC1155, ERC1155Pausable, AccessControl, ERC1155Burnable, ERC1155Supply {
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
 
     uint256 private _nextTokenId;
@@ -147,6 +143,9 @@ contract FinancingContract is
     HistoryFractions[] public historyFractions;
 
     mapping (uint256 => address) investors;
+    mapping (address=>uint256) investorBalances;
+    mapping (address => uint256[]) investorIds;
+    mapping (address => uint256[]) investorAmounts;
 
     enum Status {
         OnSale,
@@ -168,7 +167,7 @@ contract FinancingContract is
         uint256 _amountToFinance,
         uint256 _investmentFractions,
         address _addUsdt
-    ) ERC721(_name, _symbol) {
+        ) ERC1155("") {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(PAUSER_ROLE, msg.sender);
 
@@ -191,11 +190,20 @@ contract FinancingContract is
         require(usdt.transferFrom(msg.sender, address(this), priceInWei), 
             "USDT transfer error.");
 
-        // Ver ERC-1155 Mint Batch
+        uint256[] memory _ids = new uint256[](_amount);
+        uint256[] memory _amounts = new uint256[](_amount);
         for (uint8 i=0; i<_amount; i++) {
-            _safeMint(msg.sender, _nextTokenId);
+            _ids[i] = _nextTokenId;
+            _amounts[i] = 1;
             _nextTokenId++;
         }
+
+
+        _mintBatch(msg.sender, investorIds[msg.sender], investorAmounts[msg.sender],"");
+
+        investorIds[msg.sender] = _ids;
+        investorAmounts[msg.sender] = _amounts;
+        investorBalances[msg.sender] = _amount;
 
         emit Invest(msg.sender, _amount);
 
@@ -230,17 +238,13 @@ contract FinancingContract is
 
     function withdrawBuyBack() public {
         require(contractStatus == Status.Finished, "Contract is not finished.");
-        uint256 nftsAmount = balanceOf(msg.sender);
+        uint256 nftsAmount = investorBalances[msg.sender];
 
         require(nftsAmount > 0, "Caller has not tokens.");
 
         uint256 totalAmount = nftsAmount * buyBackPrice;
 
-        // SIN BUCLE ????
-        for (uint256 i = 0; i < nftsAmount; i++) {
-            _burn(tokenOfOwnerByIndex(msg.sender, i));
-        }
-
+        _burnBatch(msg.sender, investorIds[msg.sender], investorAmounts[msg.sender]);
         usdt.transfer(msg.sender, totalAmount);
     }
 
@@ -255,7 +259,7 @@ contract FinancingContract is
         return historyFractions;
     }
 
-    function pause() public onlyRole(PAUSER_ROLE) {
+        function pause() public onlyRole(PAUSER_ROLE) {
         _pause();
     }
 
@@ -265,19 +269,21 @@ contract FinancingContract is
 
     // The following functions are overrides required by Solidity.
 
+    function _update(address from, address to, uint256[] memory ids, uint256[] memory values)
+        internal
+        override(ERC1155, ERC1155Pausable, ERC1155Supply)
+    {
+        super._update(from, to, ids, values);
+    }
+
     function supportsInterface(bytes4 interfaceId)
         public
         view
-        override(ERC721, ERC721Enumerable, AccessControl)
+        override(ERC1155, AccessControl)
         returns (bool)
     {
         return super.supportsInterface(interfaceId);
     }
 
-    function _beforeTokenTransfer(address from, address to, uint256 tokenId, uint256 batchSize)
-        internal
-        override(ERC721, ERC721Enumerable, ERC721Pausable)
-    {
-        super._beforeTokenTransfer(from, to, tokenId, batchSize);
-    }
+
 }
