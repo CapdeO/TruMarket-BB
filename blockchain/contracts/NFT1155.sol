@@ -198,9 +198,10 @@ contract FinancingContract1155 is ERC1155, ERC1155Pausable, AccessControl, ERC11
             _nextTokenId++;
         }
 
-
+        // MINT EN BLOQUES
         _mintBatch(msg.sender, investorIds[msg.sender], investorAmounts[msg.sender],"");
 
+        // GUARDA EN LOS MAPPING LOS IDS Y LA CANTIDAD QUE LE CORRESPONDEN AL INVERSOR
         investorIds[msg.sender] = _ids;
         investorAmounts[msg.sender] = _amounts;
         investorBalances[msg.sender] = _amount;
@@ -243,7 +244,7 @@ contract FinancingContract1155 is ERC1155, ERC1155Pausable, AccessControl, ERC11
         require(nftsAmount > 0, "Caller has not tokens.");
 
         uint256 totalAmount = nftsAmount * buyBackPrice;
-
+        // QUEMA EN BLOQUES
         _burnBatch(msg.sender, investorIds[msg.sender], investorAmounts[msg.sender]);
         usdt.transfer(msg.sender, totalAmount);
     }
