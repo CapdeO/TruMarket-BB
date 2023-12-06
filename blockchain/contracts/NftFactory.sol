@@ -12,7 +12,6 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Pausable.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
 
 contract Factory is
     Initializable,
@@ -25,11 +24,8 @@ contract Factory is
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
     bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
 
-    // Cantidad de contratos creados hasta el momento
     uint256 public contractsCounter;
-    // Array con todas las direcciones de los contratos creados
     address[] private addressesERC721Created;
-    // Mapping de profit de cada contrato finalizado
     mapping(address => uint256) public profits;
 
     // Struct con financiacion, profits
@@ -69,9 +65,7 @@ contract Factory is
         address newImplementation
     ) internal override onlyRole(UPGRADER_ROLE) {}
 
-    // Emision de los nuevos smart contracts
-
-    // Minimal proxy --> clones de smart contracts menor costo
+    // Minimal proxy --> clones de smart contracts menor costo EIP-1167
     function FactoryFunc(
         string memory _name,
         uint256 _amountToFinance,
@@ -140,6 +134,7 @@ contract FinancingContract is
     uint256 public amountToFinance;
     uint256 public investmentFractions;
     uint256 public fractionPrice;
+    uint256 public buyBackPrice;
     bool withdraw;
     IUSDT usdt;
 
@@ -174,7 +169,6 @@ contract FinancingContract is
         amountToFinance = _amountToFinance;
         investmentFractions = _investmentFractions;
         fractionPrice = amountToFinance / investmentFractions;
-
     }
 
     function buyFraction(uint256 _amount) public whenNotPaused {
@@ -201,28 +195,40 @@ contract FinancingContract is
             contractStatus = Status.Sold;
     }
 
-    // Ver for loop (gas)
-    // Incrementar pozo
-    function buyBack(uint256 profit) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setBuyBack(uint256 profit) public onlyRole(DEFAULT_ADMIN_ROLE) {
         require(profit > 0, "Profit can't be zero");
-        // uint256 totalAmount = amountToFinance + ((amountToFinance * profit) / 100);
-        // totalAmount = totalAmount * (10**6);
-        // require(totalAmount <= usdt.balanceOf(msg.sender), "Admin does not have enough USDT balance");
-        // // Allowance (via frontend)
-        // usdt.transferFrom(msg.sender, address(this), totalAmount);
-        // uint256 pay = fractionPrice + ((fractionPrice * profit) / 100);
 
-        // Metodo "pull" --> reclamo manual
+        uint256 totalAmount = amountToFinance + ((amountToFinance * profit) / 100);
 
-        // for (uint256 i=0; i<investmentFractions; i++){
-        //     // safeTransferFrom(investors[i], address(this), i);
-        //     _burn(i);
-        //     emit BurnNft(i);
-        //     usdt.transfer(investors[i], pay);
-        // }
+        totalAmount = totalAmount * (10**6);
+
+        require(totalAmount <= usdt.balanceOf(msg.sender), "Not enough USDT balance");
+
+        require(usdt.allowance(msg.sender, address(this)) >= totalAmount, 
+            "In order to proceed, you must approve the required amount of USDT.");
+
+        usdt.transferFrom(msg.sender, address(this), totalAmount);
+
+        buyBackPrice = fractionPrice + ((fractionPrice * profit) / 100);
+
+        contractStatus = Status.Finished;
     }
 
-    // function retiro manual
+    function withdrawBuyBack() public {
+        require(contractStatus == Status.Finished, "Contract is not finished.");
+        uint256 nftsAmount = balanceOf(msg.sender);
+
+        require(nftsAmount > 0, "Caller has not tokens.");
+
+        uint256 totalAmount = nftsAmount * buyBackPrice;
+
+        // SIN BUCLE ????
+        for (uint256 i = 0; i < nftsAmount; i++) {
+            _burn(tokenOfOwnerByIndex(msg.sender, i));
+        }
+
+        usdt.transfer(msg.sender, totalAmount);
+    }
 
     function withdrawUSDT() public onlyRole(DEFAULT_ADMIN_ROLE) {
         uint256 contractBalance = usdt.balanceOf(address(this));
@@ -257,12 +263,3 @@ contract FinancingContract is
         super._beforeTokenTransfer(from, to, tokenId, batchSize);
     }
 }
-
-// Pendientes:
-
-// - Override de funciones transfer para evitar que envien tokens
-// - Cambio de Status cuando se venden todas las fractions (Sold)            -----> Done
-// - Cambio de estado cuando el admin retira el monto financiado (Milestones)-----> Done
-// - Cambio de estado cuando el admin hace el buyBack (Finished)
-// - Ver calculo variable pay en buyBack
-// - Verificar ERC-721 creado desde el Factory, posible ???
