@@ -138,6 +138,14 @@ contract FinancingContract is
     bool withdraw;
     IUSDT usdt;
 
+    struct HistoryFractions {
+        uint256 fractions;
+        uint256 timestamp;
+        address owner;
+    }
+
+    HistoryFractions[] public historyFractions;
+
     mapping (uint256 => address) investors;
 
     enum Status {
@@ -193,6 +201,12 @@ contract FinancingContract is
 
         if (_nextTokenId == (investmentFractions + 1))
             contractStatus = Status.Sold;
+
+        uint256 fractions = _amount;
+        uint235 timestamp = block.timestamp;
+        address owner = msg.sender;
+
+        historyFractions.push(HistoryFractions(fractions, timestamp, owner));
     }
 
     function setBuyBack(uint256 profit) public onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -235,6 +249,10 @@ contract FinancingContract is
         require(contractStatus == Status.Sold, "Not on sold status.");
         require(usdt.transfer(msg.sender, contractBalance), "USDT transfer error.");
         contractStatus = Status.Milestones;
+    }
+
+    function getHistorial() public view returns (HistoryFractions[] memory) {
+        return historyFractions;
     }
 
     function pause() public onlyRole(PAUSER_ROLE) {
