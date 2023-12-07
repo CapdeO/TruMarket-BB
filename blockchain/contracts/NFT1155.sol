@@ -28,6 +28,7 @@ contract Factory is
     uint256 public contractsCounter;
     address[] private addressesERC1155Created;
     mapping(address => uint256) public profits;
+    mapping(address => uint256) public operationAmounts;
 
     // Struct con financiacion, profits
 
@@ -69,6 +70,7 @@ contract Factory is
     // Minimal proxy --> clones de smart contracts menor costo EIP-1167
     function FactoryFunc(
         string memory _name,
+        uint256 _operationAmount,
         uint256 _amountToFinance,
         uint256 _investmentFractions,
         address _addUsdc
@@ -87,8 +89,10 @@ contract Factory is
             _addUsdc
         );
 
-        address newContractAdd = address(newContract);
 
+
+        address newContractAdd = address(newContract);
+        operationAmounts[newContractAdd] = _operationAmount;
         addressesERC1155Created.push(newContractAdd);
         emit NewContractDeployed(newContractAdd);
         return newContractAdd;
@@ -143,7 +147,7 @@ contract FinancingContract1155 is ERC1155, ERC1155Pausable, AccessControl, ERC11
     HistoryFractions[] public historyFractions;
 
     mapping (uint256 => address) investors;
-    mapping (address=>uint256) investorBalances;
+    mapping (address => uint256) investorBalances;
     mapping (address => uint256[]) investorIds;
     mapping (address => uint256[]) investorAmounts;
 
@@ -205,6 +209,7 @@ contract FinancingContract1155 is ERC1155, ERC1155Pausable, AccessControl, ERC11
 
         // MINT EN BLOQUES
         _mintBatch(msg.sender, _ids, _amounts,"");
+        investorBalances[msg.sender] += _amount;
 
         emit Invest(msg.sender, _amount);
 
@@ -241,7 +246,8 @@ contract FinancingContract1155 is ERC1155, ERC1155Pausable, AccessControl, ERC11
     function withdrawBuyBack() public {
         require(contractStatus == Status.Finished, "Contract is not finished.");
         require(investorIds[msg.sender].length == investorAmounts[msg.sender].length);
-        uint256 nftsAmount = investorIds[msg.sender].length;
+        require(investorIds[msg.sender].length == investorBalances[msg.sender]);
+        uint256 nftsAmount = investorBalances[msg.sender];
         require(nftsAmount > 0, "Caller has not tokens.");
 
         uint256 totalAmount = nftsAmount * buyBackPrice;
@@ -249,6 +255,7 @@ contract FinancingContract1155 is ERC1155, ERC1155Pausable, AccessControl, ERC11
         _burnBatch(msg.sender, investorIds[msg.sender], investorAmounts[msg.sender]);
         delete investorIds[msg.sender];
         delete investorAmounts[msg.sender];
+        delete investorBalances[msg.sender];
         usdt.transfer(msg.sender, totalAmount);
     }
 
