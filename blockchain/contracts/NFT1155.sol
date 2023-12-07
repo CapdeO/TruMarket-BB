@@ -12,7 +12,7 @@ import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155Pausable.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155Burnable.sol";
-import "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155Supply.sol";
+// import "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155Supply.sol";
 
 contract Factory is
     Initializable,
@@ -122,7 +122,7 @@ interface IUSDT {
     function balanceOf(address account) external view returns (uint256);
 }
 
-contract FinancingContract1155 is ERC1155, ERC1155Pausable, AccessControl, ERC1155Burnable, ERC1155Supply {
+contract FinancingContract1155 is ERC1155, ERC1155Pausable, AccessControl, ERC1155Burnable {
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
 
     uint256 private _nextTokenId;
@@ -273,12 +273,12 @@ contract FinancingContract1155 is ERC1155, ERC1155Pausable, AccessControl, ERC11
 
     // The following functions are overrides required by Solidity.
 
-    function _update(address from, address to, uint256[] memory ids, uint256[] memory values)
-        internal
-        override(ERC1155, ERC1155Pausable, ERC1155Supply)
-    {
-        super._update(from, to, ids, values);
-    }
+    // function _update(address from, address to, uint256[] memory ids, uint256[] memory values)
+    //     internal
+        // override(ERC1155, ERC1155Pausable)
+    // {
+    //     super._update(from, to, ids, values);
+    // }
 
     function supportsInterface(bytes4 interfaceId)
         public
@@ -287,6 +287,13 @@ contract FinancingContract1155 is ERC1155, ERC1155Pausable, AccessControl, ERC11
         returns (bool)
     {
         return super.supportsInterface(interfaceId);
+    }
+
+        function _beforeTokenTransfer(address operator, address from, address to, uint256[] memory ids, uint256[] memory amounts, bytes memory data)
+        internal
+        override(ERC1155, ERC1155Pausable)
+    {
+        super._beforeTokenTransfer(operator, from, to, ids, amounts, data);
     }
 
 
