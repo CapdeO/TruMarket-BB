@@ -190,26 +190,27 @@ contract FinancingContract1155 is ERC1155, ERC1155Pausable, AccessControl, ERC11
         require(usdt.transferFrom(msg.sender, address(this), priceInWei), 
             "USDT transfer error.");
 
+
+        // SE ARMAN LOS ARRAY PARA REALIZAR EL MINTEO EN BLOQUES
+        // SE ALMACENAN LOS DATOS DEL TOKEN EN LOS MAPPING DEL INVERSOR
         uint256[] memory _ids = new uint256[](_amount);
         uint256[] memory _amounts = new uint256[](_amount);
         for (uint8 i=0; i<_amount; i++) {
             _ids[i] = _nextTokenId;
+            investorIds[msg.sender].push(_nextTokenId);
             _amounts[i] = 1;
+            investorAmounts[msg.sender].push(1);
             _nextTokenId++;
         }
 
         // MINT EN BLOQUES
-        _mintBatch(msg.sender, investorIds[msg.sender], investorAmounts[msg.sender],"");
-
-        // GUARDA EN LOS MAPPING LOS IDS Y LA CANTIDAD QUE LE CORRESPONDEN AL INVERSOR
-        investorIds[msg.sender] = _ids;
-        investorAmounts[msg.sender] = _amounts;
-        investorBalances[msg.sender] = _amount;
+        _mintBatch(msg.sender, _ids, _amounts,"");
 
         emit Invest(msg.sender, _amount);
 
-        if (_nextTokenId == (investmentFractions + 1))
+        if (_nextTokenId == (investmentFractions + 1)){
             contractStatus = Status.Sold;
+        }
 
         uint256 fractions = _amount;
         uint256 timestamp = block.timestamp;
@@ -239,13 +240,15 @@ contract FinancingContract1155 is ERC1155, ERC1155Pausable, AccessControl, ERC11
 
     function withdrawBuyBack() public {
         require(contractStatus == Status.Finished, "Contract is not finished.");
-        uint256 nftsAmount = investorBalances[msg.sender];
-
+        require(investorIds[msg.sender].length == investorAmounts[msg.sender].length);
+        uint256 nftsAmount = investorIds[msg.sender].length;
         require(nftsAmount > 0, "Caller has not tokens.");
 
         uint256 totalAmount = nftsAmount * buyBackPrice;
         // QUEMA EN BLOQUES
         _burnBatch(msg.sender, investorIds[msg.sender], investorAmounts[msg.sender]);
+        delete investorIds[msg.sender];
+        delete investorAmounts[msg.sender];
         usdt.transfer(msg.sender, totalAmount);
     }
 
