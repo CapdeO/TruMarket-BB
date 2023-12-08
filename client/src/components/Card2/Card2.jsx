@@ -13,8 +13,10 @@ import WaitingTransaction from '../WaitingTransaction/WaitingTransaction'
 
 function Card2({ add, name, price, investedFractions, sold }) {
     const { invest, getUSDTBalance, getAllowance, approbeFinancingContract } = useBlockchain()
-    const amount = 2
     const [tokenAmount, setTokenAmount] = React.useState('')
+
+    console.log(sold)
+    console.log(investedFractions)
 
     const prepareBuy = async () => {
         let USDTPrice = tokenAmount * price
@@ -53,28 +55,6 @@ function Card2({ add, name, price, investedFractions, sold }) {
                 buy()
             }
         }
-
-
-
-        // invest(address, amount)
-        //     .then(async (tx) => {
-        //         await tx.wait()
-        //         //WaitingTransaction({ active: false })
-        //         // Alerta({
-        //         //     title: 'Success',
-        //         //     text: `Name: ${nameInput}. Amount: ${totalAmount}. NFTs: ${NFTsAmount}`,
-        //         //     img: Error,
-        //         // })
-        //         console.log('success')
-        //     })
-        //     .catch((error) => {
-        //         console.error(error)
-        //         // Alerta({
-        //         //     title: 'Error',
-        //         //     text: 'Transaction error',
-        //         //     img: Error,
-        //         // })
-        //     })
     }
 
     const buy = async () => {

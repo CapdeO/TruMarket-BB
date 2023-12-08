@@ -28,7 +28,7 @@ const Marketplace = () => {
         <div className='marketplace'>
             {availableNFTs.map((nft, index) => {
                 return (
-                    <Card2 key={index} add={nft.address} name={nft.name} price={Number(nft.fractionPrice)} investedFractions={nft.investedFractions} sold={`${nft.sold}/${nft.investmentFractions}`} />
+                    <Card2 key={index} add={nft.address} name={nft.name} price={Number(nft.fractionPrice)} investedFractions={Number(nft.investmentFractions)} sold={Number(nft.sold)} />
                 );
             })} 
         </div>

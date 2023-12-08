@@ -15,6 +15,7 @@ const NFTs = () => {
     const [nftsInfo, setNFTsInfo] = useState([])
 
     const getStatusLabel = (status) => {
+        console.log(status)
         switch (status) {
             case 0:
                 return "On Sale";
@@ -32,6 +33,7 @@ const NFTs = () => {
     const getCollections = async () => {
         try {
             const nftsInfo = await getNFTsList();
+            console.error(nftsInfo);
             setNFTsInfo(nftsInfo);
         } catch (error) {
             console.error(error);
