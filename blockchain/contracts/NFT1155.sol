@@ -162,8 +162,7 @@ contract FinancingContract1155 is ERC1155, ERC1155Pausable, AccessControl, ERC11
     event Invest(address investor, uint256 fractions);
     event TotalAmountFinanced();
     event WithdrawComplete();
-    event newMilestone(uint256 step, string description);
-    event BurnNft(uint256 tokenId);
+    event BurnNfts(uint256[] tokenIds);
 
     constructor(
         string memory _name,
@@ -215,6 +214,7 @@ contract FinancingContract1155 is ERC1155, ERC1155Pausable, AccessControl, ERC11
 
         if (_nextTokenId == (investmentFractions + 1)){
             contractStatus = Status.Sold;
+            emit TotalAmountFinanced();
         }
 
         uint256 fractions = _amount;
@@ -253,6 +253,7 @@ contract FinancingContract1155 is ERC1155, ERC1155Pausable, AccessControl, ERC11
         uint256 totalAmount = nftsAmount * buyBackPrice;
         // QUEMA EN BLOQUES
         _burnBatch(msg.sender, investorIds[msg.sender], investorAmounts[msg.sender]);
+        emit BurnNfts(investorIds[msg.sender]);
         delete investorIds[msg.sender];
         delete investorAmounts[msg.sender];
         delete investorBalances[msg.sender];
@@ -264,6 +265,7 @@ contract FinancingContract1155 is ERC1155, ERC1155Pausable, AccessControl, ERC11
         require(contractStatus == Status.Sold, "Not on sold status.");
         require(usdt.transfer(msg.sender, contractBalance), "USDT transfer error.");
         contractStatus = Status.Milestones;
+        emit WithdrawComplete();
     }
 
     function getHistorial() public view returns (HistoryFractions[] memory) {
