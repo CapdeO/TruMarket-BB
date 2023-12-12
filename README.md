@@ -90,4 +90,67 @@ Los más importantes son: amountToFinance, investmentFractions. Con estos valore
 Ejemplo. amountToFinance = 10000, investmentFractions = 10, fractionPrice = 1000. El valor de cada fracción seria 1000usdc
 
 //Functions
-BuyFraction
+BuyFraction(uint256 _amount)
+-Esta función publica recibe como parámetro un número entero que representa la cantidad de fracciones a comprar/invertir.
+El método utiliza ciertas verificaciones a través de requires. 
+Verifica que el estado sea OnSale para que este permitido la compra.
+Verifica que el valor del _amount no sea 0 ya que no es posible.
+Verifica que el balance en usdt del comprador sea suficiente en relacion al precio requerido.
+Verifica que el contrato tiene permiso de usar los fondos del comprador..
+Y por último una vez pasadas las verificaciones realiza la transferencia.
+
+
+Luego crea una array _ids para almacenar los tokens que se van a crear y un array _amounts para almacenar las cantidades de tokens que se van a crear.
+En el bucle for, se crea un token NFT para cada iteración. Se utiliza la variable _nextTokenId para asignar un ID único a cada token. El token se asigna al inversor (el usuario que llama a la función) y se incrementa _nextTokenId para el próximo token.
+también se crea un arreglo _amounts para almacenar las cantidades de tokens que se van a crear. Como se quiere crear un token por iteración, se asigna el valor 1 a cada posición del array.
+Luego, se utiliza la función _mintBatch para crear los tokens NFT en bloques. Esta función acepta el inversor (el usuario que llama a la función), los ID de los tokens, las cantidades de tokens y un mensaje.
+
+Finalmente, se actualiza el saldo del inversor en el diccionario investorBalances.
+
+Al completrase se emite el evento Invest que envia el comprador y la cantidad de fracciones compradas.
+
+Se llenan los datos del struct historyFractions con los valores indicados.
+
+Cambia al estado Sold.
+
+setBuyBack(uint256 profit)
+Este metodo es ejectudo por el admin unicamente y lo que hace es utilizar un porcentaje aproximado para calcular las ganancias.
+
+Verifica que el profit sea mayor a 0
+
+calcula en una varible totalAmount. Utilizando el valor invertido y sumando un porcentaje de ganancia pasado por el admin.
+
+Verifica que el balance del admin sea sufiente para pagar las ganancias.
+Verifica que el contrato tenga permisos de utilizar los fondos del admin. 
+
+Calcula el monto de cada fracción mas el profit.
+
+Ejecuta la tranferencia.
+
+Cambia al estado Finished.
+
+witdrawBuyBack()
+
+Verifica que el estado sea Finished
+Verifica que que las longuitudes de los array de ids sea igual a la de amounts.
+Verifica que la longuitud del array de los ids sea igual balance.
+Si pasan las verificaciones anteriores se calcula la cantidad de nft a quemar que tambien verifica que sea mayor a 0.
+
+se ejecuta _burnBatch
+La quema de tokens NFT implica la eliminación de estos tokens de la cadena de bloques y el envío de la cantidad equivalente de USDT (Tether) al inversor.
+Esta función acepta el inversor (el usuario que llama a la función), los ID de los tokens que se van a quemar, las cantidades de tokens que se van a quemar y un mensaje.
+Después, se emite el evento BurnNfts para notificar a los usuarios que los tokens NFT han sido quemados.
+Luego, se eliminan las entradas del inversor en los diccionarios investorIds, investorAmounts e investorBalances.
+Finalmente, se utiliza la función transfer del contrato USDT para enviar la cantidad total de USDT (Tether) al inversor.
+
+withdrawUSDT()
+Este metodo ejectuda por el admin
+
+Calcula el balance de usdt en el contrato
+Verifica que el estado sea Sold
+Hace la tranferencia para retirar los usdt
+El estado pasa a Milestones
+Se emite el evento WithdrawComplete() para notiticar que se retiro el balance.
+
+getHistorial()
+Esta funcion retorna el array con el historial de fracciones.
