@@ -65,7 +65,32 @@ describe("Testeando NFTFactory", () => {
             expect(await usdt.balanceOf(alice.address)).to.be.equal(0)
         });
     });
-
-
-
 });
+
+describe("Testing FinancingContract", async () => {
+    async function loadTest() {
+        var [owner, alice, bob, carl] = await ethers.getSigners();
+
+        var name = "ExampleApple"
+        var symbol = "APP"
+        var amountToFinance = 10000
+        var investmentFractions = 10
+        var usdt = usdt
+
+        var USDT = await ethers.getContractFactory("TetherUSD");
+        var usdt = await USDT.deploy();
+        var FinancingContract = await ethers.getContractFactory("FinancingContract1155");
+        var financing = await FinancingContract.deploy(name, symbol, amountToFinance, investmentFractions, usdt.address);
+    
+        return {usdt, financing, owner, alice, bob, carl}
+    }
+    describe("Testing buyFraction", async () => {
+        it("Price in Wei", async () => {
+            var {usdt, financing, owner, alice, bob, carl} = await loadFixture(loadTest)
+
+            var amount = 1000
+
+            //expect price * (10**6)
+        })
+    })
+}) 
