@@ -25,10 +25,9 @@ contract Factory is
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
     bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
 
-    uint256 public contractsCounter;
-    address[] private addressesERC1155Created;
-    mapping(address => uint256) public profits;
-    mapping(address => uint256) public operationAmounts;
+    uint256 public contractsCounter; // Contador de contratos creados
+    address[] private addressesERC1155Created; // Array que almacena los address de los contratos creados
+    mapping(address => uint256) public operationAmounts; // Relaciona el address del contrato con el monto total de la operacion
 
     // Struct con financiacion, profits
 
@@ -67,15 +66,15 @@ contract Factory is
         address newImplementation
     ) internal override onlyRole(UPGRADER_ROLE) {}
 
-    // Minimal proxy --> clones de smart contracts menor costo EIP-1167
+    // Funcion Factory que crea un nuevo contrato de financiacion
     function FactoryFunc(
         string memory _name,
-        uint256 _operationAmount,
-        uint256 _amountToFinance,
-        uint256 _investmentFractions,
-        address _addUsdc
+        uint256 _operationAmount, // Monto total de la operacion
+        uint256 _amountToFinance, // Monto a financiar
+        uint256 _investmentFractions, // Cantidad de fracciones
+        address _addUsdc // Address USDT
     ) public returns (address) {
-        contractsCounter += 1;
+        contractsCounter += 1; // Contador de contratos creados
 
         string memory _symbol = string(
             abi.encodePacked("TM", Strings.toString(contractsCounter))
@@ -92,10 +91,10 @@ contract Factory is
 
 
         address newContractAdd = address(newContract);
-        operationAmounts[newContractAdd] = _operationAmount;
-        addressesERC1155Created.push(newContractAdd);
-        emit NewContractDeployed(newContractAdd);
-        return newContractAdd;
+        operationAmounts[newContractAdd] = _operationAmount; // Almacena el monto de la operacion en el mapping del contrato
+        addressesERC1155Created.push(newContractAdd); // Almacena el nuevo address en el array
+        emit NewContractDeployed(newContractAdd); // Se emite el evento
+        return newContractAdd; // Retorna el address del nuevo contrato
     }
 
     /* ========== View functions ========== */
@@ -128,41 +127,46 @@ interface IUSDT {
 
 contract FinancingContract1155 is ERC1155, ERC1155Pausable, AccessControl, ERC1155Burnable {
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
+    
+    // VARIABLES
+    uint256 private _nextTokenId; // Proximo NFT a mintear
+    uint256 public amountToFinance; // Monto total a financiar
+    uint256 public investmentFractions; // Cantidad de fracciones totales 
+    uint256 public fractionPrice; // Precio de cada fraccion
+    uint256 public buyBackPrice; // Valor de cada fraccion sumando el profit
+    IUSDT usdt; // Interfaz de USDT Tether
 
-    uint256 private _nextTokenId;
-
-    uint256 public amountToFinance;
-    uint256 public investmentFractions;
-    uint256 public fractionPrice;
-    uint256 public buyBackPrice;
-    bool withdraw;
-    IUSDT usdt;
-
+    // Estructura que almacena el historial de compras realizadas
     struct HistoryFractions {
-        uint256 fractions;
-        uint256 timestamp;
-        address owner;
+        uint256 fractions; // Fracciones compradas
+        uint256 timestamp; // Fecha y hora de la compra
+        address owner; // Address del comprador
     }
 
+    // Array que almacena el historial de compras realizadas (almacena el struct)
     HistoryFractions[] public historyFractions;
 
-    mapping (uint256 => address) investors;
-    mapping (address => uint256) investorBalances;
-    mapping (address => uint256[]) investorIds;
-    mapping (address => uint256[]) investorAmounts;
+    // MAPPINGS
+    mapping (address => uint256) investorBalances; // Almacena la cantidad de NFTs de cada inversor
+    mapping (address => uint256[]) investorIds; // Almacena en un array los IDs de cada inversor
+    mapping (address => uint256[]) investorAmounts; // Almacena en un array la cantidad de cada ID que tiene cada inversor (siempre es 1)
 
+
+    // Enumerable que representa el estado actual del contrato
     enum Status {
-        OnSale,
-        Sold,
-        Milestones,
-        Finished
+        OnSale, // En venta
+        Sold, // Vendido
+        Milestones, // En proceso de despacho de los proveedores
+        Finished // Contrato finalizado, listo para que los inversores retiren las ganancias
     }
     Status public contractStatus;
 
-    event Invest(address investor, uint256 fractions);
-    event TotalAmountFinanced();
-    event WithdrawComplete();
-    event BurnNfts(uint256[] tokenIds);
+
+    // EVENTOS
+    event Invest(address investor, uint256 fractions); // Inversion o compra realizada
+    event TotalAmountFinanced(); // Monto total financiado
+    event WithdrawComplete(); // Retiro del monto total completado
+    event BurnNfts(uint256[] tokenIds); // NFTs quemados
 
     constructor(
         string memory _name,
@@ -181,23 +185,34 @@ contract FinancingContract1155 is ERC1155, ERC1155Pausable, AccessControl, ERC11
         fractionPrice = amountToFinance / investmentFractions;
     }
 
+
+    // Funcion que ejecutan los inversores para comprar fracciones
+
     function buyFraction(uint256 _amount) public whenNotPaused {
+        // Calcula el precio en WEI para la compra
         uint256 priceInWei = (fractionPrice * (10**6)) * _amount;
+        // Verifica que el contrato este en el estado de venta o "OnSale"
         require(contractStatus == Status.OnSale, "The sale is closed.");
+        // Verifica que la cantidad de fracciones a invertir sea mayor a 0
         require(_amount > 0, "Amount cannot be zero.");
+        // Verifica que la cantidad de fracciones a invertir esten disponibles
         require(_amount < investmentFractions + 1, "Amount to buy exceedes total fractions.");
+        // Verifica que el balance del comprador sea suficiente para la compra
         require(usdt.balanceOf(msg.sender) >= priceInWei, 
             "Inssuficient USDT balance.");
+        // Verifica que el contrato tenga permiso de utilizar los fondos del comprador
         require(usdt.allowance(msg.sender, address(this)) >= priceInWei, 
             "In order to proceed, you must approve the required amount of USDT.");
+        // Realiza la transferencia de los fondos hacia el contrato y verifica que la transaccion sea exitosa
         require(usdt.transferFrom(msg.sender, address(this), priceInWei), 
             "USDT transfer error.");
 
 
-        // SE ARMAN LOS ARRAY PARA REALIZAR EL MINTEO EN BLOQUES
-        // SE ALMACENAN LOS DATOS DEL TOKEN EN LOS MAPPING DEL INVERSOR
-        uint256[] memory _ids = new uint256[](_amount);
+        // SE CREAN LOS ARRAY PARA REALIZAR EL MINTEO EN BLOQUES
+        uint256[] memory _ids = new uint256[](_amount); 
         uint256[] memory _amounts = new uint256[](_amount);
+
+        // SE ALMACENAN LOS DATOS DEL TOKEN EN LOS MAPPING DEL INVERSOR
         for (uint8 i=0; i<_amount; i++) {
             _ids[i] = _nextTokenId;
             investorIds[msg.sender].push(_nextTokenId);
@@ -210,63 +225,90 @@ contract FinancingContract1155 is ERC1155, ERC1155Pausable, AccessControl, ERC11
         _mintBatch(msg.sender, _ids, _amounts,"");
         investorBalances[msg.sender] += _amount;
 
+        // Se emite el evento
         emit Invest(msg.sender, _amount);
 
+        // Verifica si se han vendido todas las fracciones, en ese caso cambia el estado del contrato y emite el evento
         if (_nextTokenId == (investmentFractions + 1)){
             contractStatus = Status.Sold;
             emit TotalAmountFinanced();
         }
 
+        // Completa los datos para almacenar en el historial de compras de fracciones
         uint256 fractions = _amount;
         uint256 timestamp = block.timestamp;
         address owner = msg.sender;
 
+        // Almacena los datos en el historial de compra de fracciones
         historyFractions.push(HistoryFractions(fractions, timestamp, owner));
     }
 
+
+    // Funcion que ejecuta el Admin para ingresar el monto financiado mas el profit hacia el contrato
+    // Ademas habilita el retiro de las ganancias para los inversores
     function setBuyBack(uint256 profit) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        // Verifica que el profit sea mayor a 0
         require(profit > 0, "Profit can't be zero");
-
+        // Calcula el monto total a ingresar sumando el profit
         uint256 totalAmount = amountToFinance + ((amountToFinance * profit) / 100);
-
         totalAmount = totalAmount * (10**6);
-
+        // Verifica que el balance del Admin sea suficiente
         require(totalAmount <= usdt.balanceOf(msg.sender), "Not enough USDT balance");
-
+        // Verifica que el contrato tenga permiso para utilizar los fondos del Admin
         require(usdt.allowance(msg.sender, address(this)) >= totalAmount, 
             "In order to proceed, you must approve the required amount of USDT.");
-
+        // Realiza la transferencia de los fondos hacia el contrato
         usdt.transferFrom(msg.sender, address(this), totalAmount);
-
+        // Calcula el valor de las fracciones mas el profit
         buyBackPrice = fractionPrice + ((fractionPrice * profit) / 100);
-
+        // Cambia el estado del contrato a Finished
         contractStatus = Status.Finished;
     }
 
+
+    // Funcion que ejecutan los inversores para retirar las ganancias
+
     function withdrawBuyBack() public {
+        // Verifica que el estado del contrato sea "Finished"
         require(contractStatus == Status.Finished, "Contract is not finished.");
+        // Verifica que coincidan la longitud de los array de los inversores y que este valor coincida con el balance de cada inversor
         require(investorIds[msg.sender].length == investorAmounts[msg.sender].length);
         require(investorIds[msg.sender].length == investorBalances[msg.sender]);
+        // Si los valores coinciden nftsAmount toma ese valor
         uint256 nftsAmount = investorBalances[msg.sender];
+        // Verifica que este valor sea mayor a 0
         require(nftsAmount > 0, "Caller has not tokens.");
-
+        // Calcula el monto total a retirar
         uint256 totalAmount = nftsAmount * buyBackPrice;
-        // QUEMA EN BLOQUES
+        // Se queman los NFTs en bloque
         _burnBatch(msg.sender, investorIds[msg.sender], investorAmounts[msg.sender]);
+        // Se emite el evento
         emit BurnNfts(investorIds[msg.sender]);
+        // Se borran los datos almacenados en los mappings del inversor
         delete investorIds[msg.sender];
         delete investorAmounts[msg.sender];
         delete investorBalances[msg.sender];
+        // Se realiza la transferencia del dinero a su wallet
         usdt.transfer(msg.sender, totalAmount);
     }
 
+
+    // Funcion que ejecutan los Admins para retirar los montos financiados
+
     function withdrawUSDT() public onlyRole(DEFAULT_ADMIN_ROLE) {
+        // Calcula el balance en USDT del contrato
         uint256 contractBalance = usdt.balanceOf(address(this));
+        // Verifica que el estado del contrato sea "Sold"
         require(contractStatus == Status.Sold, "Not on sold status.");
+        // Transfiere los fondos del contrato hacia el admin y verifica que la transaccion sea exitosa
         require(usdt.transfer(msg.sender, contractBalance), "USDT transfer error.");
+        // Cambia el estado de contrato a Milestones
         contractStatus = Status.Milestones;
+        // Emite el evento
         emit WithdrawComplete();
     }
+
+    // Funcion publica view para revisar el historial de compras realizadas
 
     function getHistorial() public view returns (HistoryFractions[] memory) {
         return historyFractions;
