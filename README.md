@@ -11,7 +11,7 @@ Blockchain:
 
 Proyecto TruMarket
 
-//Tru market es una empresa encargada de conectar mediante un red inversores
+//Tru market es una empresa encargada de conectar mediante un red inversores...
 
 1- Factory
 
@@ -21,16 +21,15 @@ Proyecto TruMarket
 -Posee un array de address[] para guardar los contractos creados. address[] private addressesERC721Created. Este array va siendo rellenado en la funcion FactoryFunc() en la creación de cada nuevo contrato.
 
 //Mappings
-  mapping(address => uint256) public profits;
-  mapping(address => uint256) public operationAmounts;
+Posee un mapping que relaciona el address del contrato con el monto de la operacion llamado operationAmounts
 
 //Events
-Utilizamos el siguiente event NewContractDeployed(address indexed deployedContract) y lo lanzamos en la creación de nuevo contrato en el metodo FactoryFunc()
+Utilizamos el siguiente event NewContractDeployed(address indexed deployedContract) y lo lanzamos en la creación de nuevo contrato en el metodo FactoryFunc(). Notitifica que se creo un nuevo contrato.
 
 //Functions
 
 FactoryFunc()
--Dicha función recibe como parámetros(string memory _name,uint256 _amountToFinanceuint256 _investmentFractions,address _addUsdc) para la creacion del nuevo contrato.
+-Dicha función recibe como parámetros(string memory _name,uint256 _amountToFinanceuint256 _investmentFractions,address _addUsdc) para la creacion del nuevo contrato. Almacena el monto de la operación en el mapping. Agrega al array de address el nuevo contrato. Lanza el evento para notificar la creación del nuevo contrato.
 
 getAddresses()
 -Este método retorna el array de address de cada contrato.
@@ -41,7 +40,7 @@ getAddresses()
 -Utiliza la interface un ERC20 en este caso USDT para utilizar sus métodos en los contratos. (transferFrom(), decimals(), allowance(), transfer(), approve(), balanceOf())
 
 2- FinancingContract1155
--Es un contrato ERC1155. Con la capacidad de 
+-Es un contrato ERC1155. Con la capacidad de...
 
 //Variables
 
@@ -55,18 +54,12 @@ getAddresses()
 
 //Structs
 
--Posee un struct llamado HistoryFractions con los siguientes parámetros(
-	uint256 fractions-(Cantidad de fracciones compradas)
-        uint256 timestamp-(Tiempo exacto en el que se ejecutó la tx)
-        address owner-(Dueño de las fracciones))
-Los datos del struct cada vez que se ejectute la funcion buyFraction se van guardando en un array llamado HistoryFractions[] public historyFractions;
+-Posee un struct llamado HistoryFractions con 3 importantes parametros para dejar un registro personalizado. fractions-(Cantidad de fracciones compradas), timestamp-(Tiempo exacto en el que se ejecutó la tx), owner-(Dueño de las fracciones).
+Los datos del struct cada vez que se ejectute la funcion buyFraction se van guardando en un array llamado historyFractions;
 
 //Mappings
 
- mapping (uint256 => address) investors; 
- mapping (address => uint256) investorBalances;
- mapping (address => uint256[]) investorIds; (id de cada inversor guardado)
- mapping (address => uint256[]) investorAmounts; (cantidad de balance de cada inversor)
+Este contrato posee 3 importantes mappings. investorBalances almacena la cantidad de nft de cada inversor. investorIds almacena un array con los ids de cada inversor. investorAmounts almacena en un array la cantidad de id que tiene cada inversor
 
 //Enums
 
@@ -78,11 +71,11 @@ Finished-Hace referencia a que el proceso completo fue finalizado.
 
 //Events
 
-event Invest(address investor, uint256 fractions);
-event TotalAmountFinanced();
-event WithdrawComplete();
-event newMilestone(uint256 step, string description);
-event BurnNft(uint256 tokenId);
+Posee eventos para cada momento del proceso de la empresa.
+El primer evento llamado Invest notifica la compra realizada con el address del inversor y la cantidad de fracciones.
+El segundo evento llamado TotalAmountFinanced notifica cuando se alcanza el monto total financiado.
+El tercer evento llamado WithdrawComplete notifica cuando se ha completado el proceso de retirada de ganancias.
+El último evento llamado BurnNfts notifica cuando se ha borrado un nft y los ids de ciertos nfts.
 
 //Contructor
 En el contructor se encargada de recibir los parametros necesarios para la creación de fracciones.
