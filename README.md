@@ -11,7 +11,15 @@ Blockchain:
 
 Proyecto TruMarket
 
-//Tru market es una empresa encargada de conectar mediante un red inversores...
+//Tru market es una empresa que tiene como mision ayudar a los productores locales a conectarse con compradores globales, a través de una plataforma basada en blockchain que garantiza la transparencia y la confianza en la cadena de valor desde la granja hasta la mesa.
+
+Nuestra misión es permitir la trazabilidad de extremo a extremo en las cadenas de suministro globales utilizando blockchain y contratos inteligentes, brindando a los clientes una visión transparente del origen, el recorrido y la calidad de los productos que compran, mientras creamos oportunidades para que los proveedores se diferencien a través de prácticas sostenibles y éticas.
+
+Los contratos inteligentes aumentan la confianza al proporcionar una forma segura y a prueba de manipulaciones para ejecutar acuerdos entre las partes. Una vez que se definen y acuerdan los términos del contrato, se codifican en una red blockchain, lo que permite la ejecución automatizada de los términos del contrato. Todos los pagos se guardan y aseguran en una cuenta de depósito en garantía y se liberan de acuerdo con su acuerdo digital cuando se completan y verifican los hitos. Como resultado, los contratos inteligentes tienen el potencial de aumentar en gran medida la eficiencia y seguridad de una amplia gama de operaciones.
+
+Cada operación pasa por una inspección in situ. El seguimiento de todos los procesos y el control de calidad del producto se produce en tiempo real y es compartido entre todos los actores y accesible a través de cualquier dispositivo.
+
+Además, el consumidor final puede consultar todos los datos públicos escaneando la etiqueta inteligente colocada en el envase y conocer la verdadera historia detrás del producto que está adquiriendo.
 
 1- Factory
 
