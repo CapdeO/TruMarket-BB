@@ -12,7 +12,6 @@ import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155Pausable.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155Burnable.sol";
-// import "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155Supply.sol";
 
 contract Factory is
     Initializable,
@@ -26,14 +25,11 @@ contract Factory is
     bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
 
     uint256 public contractsCounter; // Contador de contratos creados
-    address[] private addressesERC1155Created; // Array que almacena los address de los contratos creados
-    mapping(address => uint256) public operationAmounts; // Relaciona el address del contrato con el monto total de la operacion
-
-    // Struct con financiacion, profits
+    address[] private addressesERC1155Created; // Array que almacena las addresses de los contratos creados
 
     /* ========== Events ========== */
 
-    event NewContractDeployed(address indexed deployedContract);
+    event ContractCreated(address indexed deployedContract);
 
     /* ========== Constructor ========== */
 
@@ -69,12 +65,12 @@ contract Factory is
     // Funcion Factory que crea un nuevo contrato de financiacion
     function FactoryFunc(
         string memory _name,
-        uint256 _operationAmount, // Monto total de la operacion
-        uint256 _amountToFinance, // Monto a financiar
-        uint256 _investmentFractions, // Cantidad de fracciones
-        address _addUsdc // Address USDT
+        uint256 _operationAmount,      // Monto total de la operacion
+        uint256 _amountToFinance,      // Monto a financiar
+        uint256 _investmentFractions,  // Cantidad de fracciones
+        address _addUsdc               // Address USDT
     ) public returns (address) {
-        contractsCounter += 1; // Contador de contratos creados
+        contractsCounter += 1;
 
         string memory _symbol = string(
             abi.encodePacked("TM", Strings.toString(contractsCounter))
@@ -83,18 +79,16 @@ contract Factory is
         FinancingContract1155 newContract = new FinancingContract1155(
             _name,
             _symbol,
+            _operationAmount,
             _amountToFinance,
             _investmentFractions,
             _addUsdc
         );
 
-
-
         address newContractAdd = address(newContract);
-        operationAmounts[newContractAdd] = _operationAmount; // Almacena el monto de la operacion en el mapping del contrato
-        addressesERC1155Created.push(newContractAdd); // Almacena el nuevo address en el array
-        emit NewContractDeployed(newContractAdd); // Se emite el evento
-        return newContractAdd; // Retorna el address del nuevo contrato
+        addressesERC1155Created.push(newContractAdd);  // Almacena el nuevo address en el array
+        emit ContractCreated(newContractAdd);          // Se emite el evento
+        return newContractAdd;                         // Retorna el address del nuevo contrato
     }
 
     /* ========== View functions ========== */
@@ -126,15 +120,23 @@ interface IUSDT {
 }
 
 contract FinancingContract1155 is ERC1155, ERC1155Pausable, AccessControl, ERC1155Burnable {
-    bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
     
-    // VARIABLES
-    uint256 private _nextTokenId; // Proximo NFT a mintear
-    uint256 public amountToFinance; // Monto total a financiar
-    uint256 public investmentFractions; // Cantidad de fracciones totales 
-    uint256 public fractionPrice; // Precio de cada fraccion
-    uint256 public buyBackPrice; // Valor de cada fraccion sumando el profit
-    IUSDT usdt; // Interfaz de USDT Tether
+    /* ========== STATE VARIABLES ========== */
+
+    bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
+
+    string  public   name;                 // Nombre de la coleccion
+    string  public   symbol;               // Symbolo de identificacion
+    uint256 private  _nextTokenId;         // Proximo NFT a mintear
+    uint256 public   operationAmount;      // Monton total de operacion
+    uint256 public   amountToFinance;      // Monto total a financiar
+    uint256 public   investmentFractions;  // Cantidad de fracciones totales 
+    uint256 public   fractionPrice;        // Precio de cada fraccion
+    uint256 public   buyBackPrice;         // Valor de cada fraccion sumando el profit
+    IUSDT            usdt;                 // Interfaz de USDT Tether
+
+    // Solo si se implementa la forma 2 de compra
+    uint256 public   totalSupply;          // Tokens minteados hasta el momento
 
     // Estructura que almacena el historial de compras realizadas
     struct HistoryFractions {
@@ -151,18 +153,18 @@ contract FinancingContract1155 is ERC1155, ERC1155Pausable, AccessControl, ERC11
     mapping (address => uint256[]) investorIds; // Almacena en un array los IDs de cada inversor
     mapping (address => uint256[]) investorAmounts; // Almacena en un array la cantidad de cada ID que tiene cada inversor (siempre es 1)
 
-
-    // Enumerable que representa el estado actual del contrato
+    // Enumerable que representa el estado en el que se encuentra el contrato
     enum Status {
-        OnSale, // En venta
-        Sold, // Vendido
+        OnSale,     // En venta
+        Sold,       // Vendido
         Milestones, // En proceso de despacho de los proveedores
-        Finished // Contrato finalizado, listo para que los inversores retiren las ganancias
+        Finished    // Contrato finalizado, listo para que los inversores retiren las ganancias
     }
-    Status public contractStatus;
 
+    Status public contractStatus; // Estado actual correspondiente al contrato
 
-    // EVENTOS
+    /* ========== EVENTS ========== */
+
     event Invest(address investor, uint256 fractions); // Inversion o compra realizada
     event TotalAmountFinanced(); // Monto total financiado
     event WithdrawComplete(); // Retiro del monto total completado
@@ -171,6 +173,7 @@ contract FinancingContract1155 is ERC1155, ERC1155Pausable, AccessControl, ERC11
     constructor(
         string memory _name,
         string memory _symbol,
+        uint256 _operationAmount,
         uint256 _amountToFinance,
         uint256 _investmentFractions,
         address _addUsdt
@@ -180,23 +183,25 @@ contract FinancingContract1155 is ERC1155, ERC1155Pausable, AccessControl, ERC11
 
         usdt = IUSDT(_addUsdt);
 
+        name = _name;
+        symbol = _symbol;
+        operationAmount = _operationAmount;
         amountToFinance = _amountToFinance;
         investmentFractions = _investmentFractions;
         fractionPrice = amountToFinance / investmentFractions;
     }
 
-
     // Funcion que ejecutan los inversores para comprar fracciones
 
     function buyFraction(uint256 _amount) public whenNotPaused {
-        // Calcula el precio en WEI para la compra
+        // Le agrega los seis decimales
         uint256 priceInWei = (fractionPrice * (10**6)) * _amount;
         // Verifica que el contrato este en el estado de venta o "OnSale"
         require(contractStatus == Status.OnSale, "The sale is closed.");
         // Verifica que la cantidad de fracciones a invertir sea mayor a 0
         require(_amount > 0, "Amount cannot be zero.");
-        // Verifica que la cantidad de fracciones a invertir esten disponibles
-        require(_amount < investmentFractions + 1, "Amount to buy exceedes total fractions.");
+        // Verifica que la cantidad de fracciones a comprar sea menor al total
+        require(_amount <= investmentFractions, "Amount to buy exceedes total fractions.");
         // Verifica que el balance del comprador sea suficiente para la compra
         require(usdt.balanceOf(msg.sender) >= priceInWei, 
             "Inssuficient USDT balance.");
@@ -206,7 +211,6 @@ contract FinancingContract1155 is ERC1155, ERC1155Pausable, AccessControl, ERC11
         // Realiza la transferencia de los fondos hacia el contrato y verifica que la transaccion sea exitosa
         require(usdt.transferFrom(msg.sender, address(this), priceInWei), 
             "USDT transfer error.");
-
 
         // SE CREAN LOS ARRAY PARA REALIZAR EL MINTEO EN BLOQUES
         uint256[] memory _ids = new uint256[](_amount); 
@@ -243,6 +247,42 @@ contract FinancingContract1155 is ERC1155, ERC1155Pausable, AccessControl, ERC11
         historyFractions.push(HistoryFractions(fractions, timestamp, owner));
     }
 
+    function buyFraction2(uint256[] memory _ids, uint256[] memory _amount) public whenNotPaused {
+        // Cantidad a comprar
+        uint256 amount = _amount.length;
+        // Le agrega los seis decimales
+        uint256 priceInWei = (fractionPrice * (10**6)) * amount;
+        // Verifica que la cantidad de fracciones a invertir sea mayor a 0
+        require(amount > 0, "Amount cannot be zero.");
+        // Verifica que el contrato este en el estado de venta o "OnSale"
+        require(contractStatus == Status.OnSale, "The sale is closed.");
+        // Verifica que la cantidad de fracciones a comprar sea menor al total
+        require(amount <= investmentFractions, "Amount to buy exceedes total fractions.");
+        // Verifica que el suministro actual sumado a amount no supere el total
+        require(totalSupply + amount <= investmentFractions, "Exceeding total fractions.");
+        // Verifica que el balance del comprador sea suficiente para la compra
+        require(usdt.balanceOf(msg.sender) >= priceInWei, 
+            "Inssuficient USDT balance.");
+        // Verifica que el contrato tenga permiso de utilizar los fondos del comprador
+        require(usdt.allowance(msg.sender, address(this)) >= priceInWei, 
+            "In order to proceed, you must approve the required amount of USDT.");
+        // Realiza la transferencia de los fondos hacia el contrato y verifica que la transaccion sea exitosa
+        require(usdt.transferFrom(msg.sender, address(this), priceInWei), 
+            "USDT transfer error.");
+
+        // Mint en bloques
+        _mintBatch(msg.sender, _ids, _amount,"");
+        totalSupply += amount;
+
+        // Se emite el evento
+        emit Invest(msg.sender, amount);
+
+        // Verifica si se han vendido todas las fracciones, en ese caso cambia el estado del contrato y emite el evento
+        if (totalSupply == investmentFractions){
+            contractStatus = Status.Sold;
+            emit TotalAmountFinanced();
+        }
+    }
 
     // Funcion que ejecuta el Admin para ingresar el monto financiado mas el profit hacia el contrato
     // Ademas habilita el retiro de las ganancias para los inversores
@@ -292,7 +332,6 @@ contract FinancingContract1155 is ERC1155, ERC1155Pausable, AccessControl, ERC11
         usdt.transfer(msg.sender, totalAmount);
     }
 
-
     // Funcion que ejecutan los Admins para retirar los montos financiados
 
     function withdrawUSDT() public onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -322,15 +361,6 @@ contract FinancingContract1155 is ERC1155, ERC1155Pausable, AccessControl, ERC11
         _unpause();
     }
 
-    // The following functions are overrides required by Solidity.
-
-    // function _update(address from, address to, uint256[] memory ids, uint256[] memory values)
-    //     internal
-        // override(ERC1155, ERC1155Pausable)
-    // {
-    //     super._update(from, to, ids, values);
-    // }
-
     function supportsInterface(bytes4 interfaceId)
         public
         view
@@ -346,6 +376,4 @@ contract FinancingContract1155 is ERC1155, ERC1155Pausable, AccessControl, ERC11
     {
         super._beforeTokenTransfer(operator, from, to, ids, amounts, data);
     }
-
-
 }

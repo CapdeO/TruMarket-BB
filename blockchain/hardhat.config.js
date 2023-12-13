@@ -13,7 +13,6 @@ module.exports = {
       },
     },
   },
-  allowUnlimitedContractSize: true,
   networks: {
     mumbai: {
       url: process.env.MUMBAI_TESNET_URL,
@@ -22,6 +21,9 @@ module.exports = {
       gas: "auto",
       gasPrice: "auto",
     },
+    hardhat: {
+      allowUnlimitedContractSize: true
+    }
   },
   etherscan: {
     apiKey: {

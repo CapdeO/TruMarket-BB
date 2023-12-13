@@ -13,7 +13,7 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Pausable.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 
-contract Factory is
+contract FactoryERC721 is
     Initializable,
     PausableUpgradeable,
     AccessControlUpgradeable,
@@ -78,7 +78,7 @@ contract Factory is
             abi.encodePacked("TM", Strings.toString(contractsCounter))
         );
 
-        FinancingContract newContract = new FinancingContract(
+        FinancingContractERC721 newContract = new FinancingContractERC721(
             _name,
             _symbol,
             _amountToFinance,
@@ -121,7 +121,7 @@ interface IUSDT {
     function balanceOf(address account) external view returns (uint256);
 }
 
-contract FinancingContract is
+contract FinancingContractERC721 is
     ERC721,
     ERC721Enumerable,
     ERC721Pausable,
