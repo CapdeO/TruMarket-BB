@@ -251,16 +251,17 @@ describe("Testing FinancingContract", async () => {
             await usdt.approve(financing.target, 20000 * (10**6));
             await financing.buyFraction(10);
             await financing.withdrawUSDT();
-            await expect(financing.setBuyBack(10)).to.revertedWith("In order to proceed, you must approve the required amount of USDT.");
+            await expect(financing.setBuyBack(2000)).to.revertedWith("In order to proceed, you must approve the required amount of USDT.");
         });
 
         it("Correct amounts", async () => {
             var {usdt, financing, owner, alice, bob} = await loadTest();
-            await usdt.approve(financing.target, 20000 * (10**6));
+            await usdt.approve(financing.target, 25000 * (10**6));
             await financing.buyFraction(10);
             await financing.withdrawUSDT();
-            let tx = await financing.setBuyBack(10);
-            expect(financing.buyBackPrice.to.be.equal(1100 * (10**6)));
+            await financing.setBuyBack(10);
+            const buyBackPrice = await financing.readBuyBackPrice();
+            expect(buyBackPrice).to.be.equal(1100 * (10**6));
         });
 
 
@@ -269,46 +270,51 @@ describe("Testing FinancingContract", async () => {
     describe("Testing withdrawBuyBack", async () => {
         it("Contract Status", async () => {
             var {usdt, financing, owner} = await loadTest();
-            await usdt.approve(financing.target, 20000 * (10**6));
+            await usdt.approve(financing.target, 25000 * (10**6));
             await financing.buyFraction(10);
             await financing.withdrawUSDT();
             await financing.setBuyBack(10);
 
-            expect(financing.Status.to.be.equal(financing.Status.Finished));
+            expect(financing.Status).to.be.equal(financing.Status.Finished);
         })
 
         it("Caller has not tokens", async () => {
-            var {usdt, financing, owner} = await loadTest();
-            await usdt.approve(financing.target, 20000 * (10**6));
+            var {usdt, financing, owner, alice} = await loadTest();
+            await usdt.approve(financing.target, 25000 * (10**6));
             await financing.buyFraction(10);
             await financing.withdrawUSDT();
             await financing.setBuyBack(10);
-            await expect(financing.connect(alice).withdrawBuyBack().to.revertedWith("Caller has not tokens"));
+            await expect(financing.connect(alice).withdrawBuyBack()).to.revertedWith("Caller has not tokens.");
         });
 
         it("Emit event", async () => {
             var {usdt, financing, owner} = await loadTest();
-            await usdt.approve(financing.target, 20000 * (10**6));
+            await usdt.approve(financing.target, 25000 * (10**6));
             await financing.buyFraction(10);
             await financing.withdrawUSDT();
             await financing.setBuyBack(10);
             let args = [0,1,2,3,4,5,6,7,8,9];
-            await expect(financing.withdrawBuyBack().to.emit(financing, "BurnNfts").withArgs(args));
+            await expect(financing.withdrawBuyBack()).to.emit(financing, "BurnNfts").withArgs(args);
         });
 
         it("Delete balances", async () => {
             var {usdt, financing, owner} = await loadTest();
-            await usdt.approve(financing.target, 20000 * (10**6));
+            await usdt.approve(financing.target, 25000 * (10**6));
             await financing.buyFraction(10);
             await financing.withdrawUSDT();
             await financing.setBuyBack(10);
             await financing.withdrawBuyBack();
+            const _investorIds = await financing.readInvestorIds(owner.address);
+            const _investorAmounts = await financing.readInvestorAmounts(owner.address);
+            const _investorBalances = await financing.readInvestorBalances(owner.address);
+            const arrayVacio = [];
 
-            expect(financing.investorIds[owner.address].to.be.equal(0));
-            expect(financing.investorAmounts[owner.address].to.be.equal(0));
-            expect(financing.investorBalances[owner.address].to.be.equal(0));
+            expect(_investorIds).to.be.equal(arrayVacio);
+            expect(_investorAmounts).to.be.equal(arrayVacio);
+            expect(_investorBalances).to.be.equal(0);
         })
     })
+
 
 
 }) 

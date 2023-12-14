@@ -135,6 +135,10 @@ contract FinancingContract1155 is ERC1155, ERC1155Pausable, AccessControl, ERC11
     uint256 public   buyBackPrice;         // Valor de cada fraccion sumando el profit
     IUSDT            usdt;                 // Interfaz de USDT Tether
 
+    function readBuyBackPrice() public view returns (uint256) {
+        return buyBackPrice;
+    }
+
     // Solo si se implementa la forma 2 de compra
     uint256 public   totalSupply;          // Tokens minteados hasta el momento
 
