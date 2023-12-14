@@ -112,13 +112,13 @@ describe("Testing FinancingContract", async () => {
 
         var USDT = await ethers.getContractFactory("TetherUSD");
         var usdt = await USDT.deploy();
-        var addressUSDT = usdt.target
+        var addressUSDT = usdt.target;
         
-        var name = "ExampleApple"
-        var symbol = "BTC"
-        var operationAmount = 12000
-        var amountToFinance = 10000
-        var investmentFractions = 10
+        var name = "ExampleApple";
+        var symbol = "BTC";
+        var operationAmount = 12000;
+        var amountToFinance = 10000;
+        var investmentFractions = 10;
         
         var FinancingContract = await ethers.getContractFactory("FinancingContract1155");
         var financing = await FinancingContract.deploy(
