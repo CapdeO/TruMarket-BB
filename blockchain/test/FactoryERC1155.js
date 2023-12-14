@@ -120,6 +120,10 @@ describe("Testing FinancingContract", async () => {
             var {usdt, financing} = await loadFixture(loadTest);
 
             await expect(financing.contractStatus.to.be.equal(financing.Status.onSale));
+
+            tx = await financing.buyFraction(10);
+
+            await expect(financing.contractStatus.to.be.equal(financing.Status.Sold));
         })
 
         it("Amount cannot be zero", async () => {
@@ -147,11 +151,21 @@ describe("Testing FinancingContract", async () => {
             var {usdt, financing, owner, alice, bob, carl} = await loadFixture(loadTest);
             let ids = [0,1,2,3,4];
             let amounts = [1,1,1,1,1];
-            let balance = 10;
+            let balance = 5;
 
-            await expect(financing.buyFraction(5)._ids.to.be.equal(ids));
-            await expect(financing.buyFraction(5)._amounts.to.be.equal(amounts));
-            await expect(financing.investorBalances[owner.address]).to.be.equal(balance);
+            let tx = await financing.buyFraction(5);
+
+            await expect(financing.investorIds[owner.address].to.be.equal(ids));
+            await expect(financing.investorAmounts[owner.address].to.be.equal(amounts));
+            await expect(financing.investorBalances[owner.address].to.be.equal(balance));
+        })
+
+        it("Emit events", async () => {
+            var {usdt, financing, owner, alice} = await loadFixture(loadTest);
+
+            await expect(financing.buyFraction(1).to.emit(financing, "Invest").withArgs(owner.address, 1));
+
+            await expect(financing.buyFraction(9).to.emit(financing, "TotalAmountFinanced"));
         })
     })
 
