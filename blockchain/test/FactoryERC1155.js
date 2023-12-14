@@ -31,14 +31,14 @@ describe("Testing FactoryERC1155", () => {
             let tx = await factory.FactoryFunc(name, operationAmount, amountToFinance, fractions, usdt.target);
             let array = await factory.getAddresses()
             let address = array[0]
-            let newERC721Contract = await getContract(address)
+            let newERC1155Contract = await getContract(address)
 
             await expect(tx).to.emit(factory, "ContractCreated").withArgs(address);
-            expect(await newERC721Contract.name()).to.be.equal(name)
-            expect(await newERC721Contract.symbol()).to.be.equal('TM1')
-            expect(await newERC721Contract.operationAmount()).to.be.equal(operationAmount)
-            expect(await newERC721Contract.amountToFinance()).to.be.equal(amountToFinance)
-            expect(await newERC721Contract.investmentFractions()).to.be.equal(fractions)
+            expect(await newERC1155Contract.name()).to.be.equal(name)
+            expect(await newERC1155Contract.symbol()).to.be.equal('TM1')
+            expect(await newERC1155Contract.operationAmount()).to.be.equal(operationAmount)
+            expect(await newERC1155Contract.amountToFinance()).to.be.equal(amountToFinance)
+            expect(await newERC1155Contract.investmentFractions()).to.be.equal(fractions)
             expect(await factory.contractsCounter()).to.be.equal(1)
 
             let name2 = 'Mango Heaven 50 TON'
@@ -49,13 +49,13 @@ describe("Testing FactoryERC1155", () => {
             let tx2 = await factory.FactoryFunc(name2, operationAmount2, amountToFinance2, fractions2, usdt.target);
             array = await factory.getAddresses()
             let address2 = array[1]
-            let newERC721Contract2 = await getContract(address2)
+            let newERC1155Contract2 = await getContract(address2)
 
             await expect(tx2).to.emit(factory, "ContractCreated").withArgs(address2);
-            expect(await newERC721Contract2.name()).to.be.equal(name2)
-            expect(await newERC721Contract2.symbol()).to.be.equal('TM2')
-            expect(await newERC721Contract2.amountToFinance()).to.be.equal(amountToFinance2)
-            expect(await newERC721Contract2.investmentFractions()).to.be.equal(fractions2)
+            expect(await newERC1155Contract2.name()).to.be.equal(name2)
+            expect(await newERC1155Contract2.symbol()).to.be.equal('TM2')
+            expect(await newERC1155Contract2.amountToFinance()).to.be.equal(amountToFinance2)
+            expect(await newERC1155Contract2.investmentFractions()).to.be.equal(fractions2)
             expect(await factory.contractsCounter()).to.be.equal(2)
         });
 
@@ -69,17 +69,17 @@ describe("Testing FactoryERC1155", () => {
         //     await factory.FactoryFunc(name, amountToFinance, fractions, usdt.target);
         //     let array = await factory.getAddresses()
         //     let address = array[0]
-        //     let newERC721Contract = await getContract(address)
+        //     let newERC1155Contract = await getContract(address)
         //     let NFTsAmount = 5
         //     let NFTsPriceInWei = NFTsAmount * price
 
         //     await usdt.mint(alice, NFTsPriceInWei)
-        //     await usdt.connect(alice).approve(newERC721Contract.target, NFTsPriceInWei)
+        //     await usdt.connect(alice).approve(newERC1155Contract.target, NFTsPriceInWei)
 
-        //     await newERC721Contract.connect(alice).buyFraction(NFTsAmount)
+        //     await newERC1155Contract.connect(alice).buyFraction(NFTsAmount)
 
-        //     expect(await newERC721Contract.balanceOf(alice.address)).to.be.equal(NFTsAmount)
-        //     expect(await usdt.balanceOf(newERC721Contract.target)).to.be.equal(NFTsPriceInWei)
+        //     expect(await newERC1155Contract.balanceOf(alice.address)).to.be.equal(NFTsAmount)
+        //     expect(await usdt.balanceOf(newERC1155Contract.target)).to.be.equal(NFTsPriceInWei)
         //     expect(await usdt.balanceOf(alice.address)).to.be.equal(0)
         // });
     });
@@ -109,10 +109,49 @@ describe("Testing FinancingContract", async () => {
 
     describe("Testing buyFraction", async () => {
         it("Price in Wei", async () => {
-            var { usdt, financing, owner, alice, bob, carl } = await loadFixture(loadTest)
+            var { usdt, financing, owner, alice, bob, carl } = await loadFixture(loadTest);
 
+            
+            await expect(financing.buyFraction(1).priceInWei.to.be.equal(1000000000));
 
-            //expect price * (10**6)
+        })
+
+        it("Contract Status", async () => {
+            var {usdt, financing} = await loadFixture(loadTest);
+
+            await expect(financing.contractStatus.to.be.equal(financing.Status.onSale));
+        })
+
+        it("Amount cannot be zero", async () => {
+            var {usdt, financing, owner} = await loadFixture(loadTest);
+            await expect(financing.buyFraction(0).to.be.revertedWith("Amount cannot be zero."));
+
+        })
+
+        it("Amount to buy exceedes total fractions", async () => {
+            var {usdt, financing, owner} = await loadFixture(loadTest);
+            await expect(financing.buyFraction(12).to.be.revertedWith("Amount to buy exceedes total fractions."));
+        })
+
+        it("Insufficient USDT balance", async () => {
+            var {usdt, financing, alice} = await loadFixture(loadTest);
+            await expect(financing.connect(alice).buyFraction(1)).to.be.revertedWith("Insufficient USDT balance.");
+        })
+
+        it("Allowance", async () => {
+            var {usdt, financing, owner, alice} = await loadFixture(loadTest);
+            await expect(financing.connect(alice).buyFraction(1).to.be.revertedWith("In order to proceed, you must approve the required amount of USDT."));
+        })
+
+        it("Correct Ids, Amounts and Balance", async () => {
+            var {usdt, financing, owner, alice, bob, carl} = await loadFixture(loadTest);
+            let ids = [0,1,2,3,4];
+            let amounts = [1,1,1,1,1];
+            let balance = 10;
+
+            await expect(financing.buyFraction(5)._ids.to.be.equal(ids));
+            await expect(financing.buyFraction(5)._amounts.to.be.equal(amounts));
+            await expect(financing.investorBalances[owner.address]).to.be.equal(balance);
         })
     })
 

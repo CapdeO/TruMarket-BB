@@ -189,6 +189,8 @@ contract FinancingContract1155 is ERC1155, ERC1155Pausable, AccessControl, ERC11
         amountToFinance = _amountToFinance;
         investmentFractions = _investmentFractions;
         fractionPrice = amountToFinance / investmentFractions;
+
+        contractStatus = Status.OnSale;
     }
 
     // Funcion que ejecutan los inversores para comprar fracciones
@@ -204,7 +206,7 @@ contract FinancingContract1155 is ERC1155, ERC1155Pausable, AccessControl, ERC11
         require(_amount <= investmentFractions, "Amount to buy exceedes total fractions.");
         // Verifica que el balance del comprador sea suficiente para la compra
         require(usdt.balanceOf(msg.sender) >= priceInWei, 
-            "Inssuficient USDT balance.");
+            "Insufficient USDT balance.");
         // Verifica que el contrato tenga permiso de utilizar los fondos del comprador
         require(usdt.allowance(msg.sender, address(this)) >= priceInWei, 
             "In order to proceed, you must approve the required amount of USDT.");
@@ -262,7 +264,7 @@ contract FinancingContract1155 is ERC1155, ERC1155Pausable, AccessControl, ERC11
         require(totalSupply + amount <= investmentFractions, "Exceeding total fractions.");
         // Verifica que el balance del comprador sea suficiente para la compra
         require(usdt.balanceOf(msg.sender) >= priceInWei, 
-            "Inssuficient USDT balance.");
+            "Insufficient USDT balance.");
         // Verifica que el contrato tenga permiso de utilizar los fondos del comprador
         require(usdt.allowance(msg.sender, address(this)) >= priceInWei, 
             "In order to proceed, you must approve the required amount of USDT.");
