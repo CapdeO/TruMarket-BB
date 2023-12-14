@@ -169,5 +169,42 @@ describe("Testing FinancingContract", async () => {
         })
     })
 
+    describe("Testing setBuyBack", async () => {
+        async function loadTest() {
+            var [owner, alice, bob, carl, peter] = await ethers.getSigners();
+    
+            var USDT = await ethers.getContractFactory("TetherUSD");
+            var usdt = await USDT.deploy();
+            var addressUSDT = usdt.target
+            
+            var name = "ExampleApple"
+            var symbol = "BTC"
+            var operationAmount = 12000
+            var amountToFinance = 10000
+            var investmentFractions = 10
+            
+            var FinancingContract = await ethers.getContractFactory("FinancingContract1155");
+            var financing = await FinancingContract.deploy(
+                name, symbol, operationAmount, amountToFinance, investmentFractions, addressUSDT
+            );
+    
+            return { usdt, financing, owner, alice, bob, carl, peter }
+        }
+
+        it("Only Admins", async () => {
+            var {usdt, financing, owner, alice, bob} = await loadTest();
+            // Check that only admins can call the function
+            await expect(financing.connect(alice).setBuyBack(10)).to.be.reverted;
+        });
+
+
+        it("Profit can't be zero", async () => {
+            var {usdt, financing, owner, alice} = await loadTest();
+            await expect(financing.setBuyBack(0)).to.revertedWith("Profit can't be zero");
+
+        });
+
+    })
+
 
 }) 
