@@ -153,6 +153,16 @@ contract FinancingContract1155 is ERC1155, ERC1155Pausable, AccessControl, ERC11
     mapping (address => uint256[]) investorIds; // Almacena en un array los IDs de cada inversor
     mapping (address => uint256[]) investorAmounts; // Almacena en un array la cantidad de cada ID que tiene cada inversor (siempre es 1)
 
+    function readInvestorBalances(address _address) public view returns(uint256) {
+        return investorBalances[_address];
+    }
+    function readInvestorIds(address _address) public view returns(uint256[] memory) {
+        return investorIds[_address];
+    }
+    function readInvestorAmounts(address _address) public view returns(uint256[] memory) {
+        return investorAmounts[_address];
+    }
+
     // Enumerable que representa el estado en el que se encuentra el contrato
     enum Status {
         OnSale,     // En venta
@@ -162,6 +172,10 @@ contract FinancingContract1155 is ERC1155, ERC1155Pausable, AccessControl, ERC11
     }
 
     Status public contractStatus; // Estado actual correspondiente al contrato
+
+    function readStatus() public view returns (Status) {
+        return contractStatus;
+    }
 
     /* ========== EVENTS ========== */
 
@@ -235,7 +249,7 @@ contract FinancingContract1155 is ERC1155, ERC1155Pausable, AccessControl, ERC11
         emit Invest(msg.sender, _amount);
 
         // Verifica si se han vendido todas las fracciones, en ese caso cambia el estado del contrato y emite el evento
-        if (_nextTokenId == (investmentFractions + 1)){
+        if (_nextTokenId == (investmentFractions)){
             contractStatus = Status.Sold;
             emit TotalAmountFinanced();
         }
