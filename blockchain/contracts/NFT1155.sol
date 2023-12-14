@@ -285,10 +285,26 @@ contract FinancingContract1155 is ERC1155, ERC1155Pausable, AccessControl, ERC11
             emit TotalAmountFinanced();
         }
     }
+    // Funcion que ejecutan los Admins para retirar los montos financiados
+
+    function withdrawUSDT() public onlyRole(DEFAULT_ADMIN_ROLE) {
+        // Calcula el balance en USDT del contrato
+        uint256 contractBalance = usdt.balanceOf(address(this));
+        // Verifica que el estado del contrato sea "Sold"
+        require(contractStatus == Status.Sold, "Not on sold status.");
+        // Transfiere los fondos del contrato hacia el admin y verifica que la transaccion sea exitosa
+        require(usdt.transfer(msg.sender, contractBalance), "USDT transfer error.");
+        // Cambia el estado de contrato a Milestones
+        contractStatus = Status.Milestones;
+        // Emite el evento
+        emit WithdrawComplete();
+    }
 
     // Funcion que ejecuta el Admin para ingresar el monto financiado mas el profit hacia el contrato
     // Ademas habilita el retiro de las ganancias para los inversores
     function setBuyBack(uint256 profit) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        // Verifica que el estado del contrato sea "Milestone"
+        require(contractStatus == Status.Milestones, "Invalid status for Buyback.");
         // Verifica que el profit sea mayor a 0
         require(profit > 0, "Profit can't be zero");
         // Calcula el monto total a ingresar sumando el profit
@@ -303,6 +319,7 @@ contract FinancingContract1155 is ERC1155, ERC1155Pausable, AccessControl, ERC11
         usdt.transferFrom(msg.sender, address(this), totalAmount);
         // Calcula el valor de las fracciones mas el profit
         buyBackPrice = fractionPrice + ((fractionPrice * profit) / 100);
+        buyBackPrice = buyBackPrice * (10**6);
         // Cambia el estado del contrato a Finished
         contractStatus = Status.Finished;
     }
@@ -334,20 +351,6 @@ contract FinancingContract1155 is ERC1155, ERC1155Pausable, AccessControl, ERC11
         usdt.transfer(msg.sender, totalAmount);
     }
 
-    // Funcion que ejecutan los Admins para retirar los montos financiados
-
-    function withdrawUSDT() public onlyRole(DEFAULT_ADMIN_ROLE) {
-        // Calcula el balance en USDT del contrato
-        uint256 contractBalance = usdt.balanceOf(address(this));
-        // Verifica que el estado del contrato sea "Sold"
-        require(contractStatus == Status.Sold, "Not on sold status.");
-        // Transfiere los fondos del contrato hacia el admin y verifica que la transaccion sea exitosa
-        require(usdt.transfer(msg.sender, contractBalance), "USDT transfer error.");
-        // Cambia el estado de contrato a Milestones
-        contractStatus = Status.Milestones;
-        // Emite el evento
-        emit WithdrawComplete();
-    }
 
     // Funcion publica view para revisar el historial de compras realizadas
 

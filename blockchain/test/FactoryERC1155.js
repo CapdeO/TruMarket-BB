@@ -6,6 +6,27 @@ async function getContract(_add) {
     return await ethers.getContractAt("FinancingContract1155", _add);
 }
 
+async function loadTest() {
+    var [owner, alice, bob, carl, peter] = await ethers.getSigners();
+
+    var USDT = await ethers.getContractFactory("TetherUSD");
+    var usdt = await USDT.deploy();
+    var addressUSDT = usdt.target
+    
+    var name = "ExampleApple"
+    var symbol = "BTC"
+    var operationAmount = 12000
+    var amountToFinance = 10000
+    var investmentFractions = 10
+    
+    var FinancingContract = await ethers.getContractFactory("FinancingContract1155");
+    var financing = await FinancingContract.deploy(
+        name, symbol, operationAmount, amountToFinance, investmentFractions, addressUSDT
+    );
+
+    return { usdt, financing, owner, alice, bob, carl, peter }
+}
+
 describe("Testing FactoryERC1155", () => {
     async function loadTest() {
         var [owner, alice, bob, carl] = await ethers.getSigners();
@@ -108,89 +129,68 @@ describe("Testing FinancingContract", async () => {
     }
 
     describe("Testing buyFraction", async () => {
-        it("Price in Wei", async () => {
-            var { usdt, financing, owner, alice, bob, carl } = await loadFixture(loadTest);
-
-            
-            await expect(financing.buyFraction(1).priceInWei.to.be.equal(1000000000));
-
-        })
-
         it("Contract Status", async () => {
             var {usdt, financing} = await loadFixture(loadTest);
 
             await expect(financing.contractStatus.to.be.equal(financing.Status.onSale));
 
-            tx = await financing.buyFraction(10);
+        });
 
-            await expect(financing.contractStatus.to.be.equal(financing.Status.Sold));
-        })
+
+        it("Price in Wei", async () => {
+            var { usdt, financing, owner, alice, bob, carl } = await loadFixture(loadTest);
+
+            await usdt.approve(financing.address, 20000);
+            await expect(financing.buyFraction(1).priceInWei.to.be.equal(1000 * (10**6)));
+
+        });
+
 
         it("Amount cannot be zero", async () => {
             var {usdt, financing, owner} = await loadFixture(loadTest);
             await expect(financing.buyFraction(0).to.be.revertedWith("Amount cannot be zero."));
 
-        })
+        });
 
         it("Amount to buy exceedes total fractions", async () => {
             var {usdt, financing, owner} = await loadFixture(loadTest);
             await expect(financing.buyFraction(12).to.be.revertedWith("Amount to buy exceedes total fractions."));
-        })
+        });
 
         it("Insufficient USDT balance", async () => {
             var {usdt, financing, alice} = await loadFixture(loadTest);
             await expect(financing.connect(alice).buyFraction(1)).to.be.revertedWith("Insufficient USDT balance.");
-        })
+        });
 
         it("Allowance", async () => {
             var {usdt, financing, owner, alice} = await loadFixture(loadTest);
             await expect(financing.connect(alice).buyFraction(1).to.be.revertedWith("In order to proceed, you must approve the required amount of USDT."));
-        })
+        });
 
         it("Correct Ids, Amounts and Balance", async () => {
             var {usdt, financing, owner, alice, bob, carl} = await loadFixture(loadTest);
             let ids = [0,1,2,3,4];
             let amounts = [1,1,1,1,1];
             let balance = 5;
-
+            await usdt.approve(financing.address, 20000);
             let tx = await financing.buyFraction(5);
 
             await expect(financing.investorIds[owner.address].to.be.equal(ids));
             await expect(financing.investorAmounts[owner.address].to.be.equal(amounts));
             await expect(financing.investorBalances[owner.address].to.be.equal(balance));
-        })
+        });
 
         it("Emit events", async () => {
             var {usdt, financing, owner, alice} = await loadFixture(loadTest);
+            await usdt.approve(financing.address, 20000);
 
             await expect(financing.buyFraction(1).to.emit(financing, "Invest").withArgs(owner.address, 1));
 
             await expect(financing.buyFraction(9).to.emit(financing, "TotalAmountFinanced"));
-        })
+        });
     })
 
-    describe("Testing setBuyBack", async () => {
-        async function loadTest() {
-            var [owner, alice, bob, carl, peter] = await ethers.getSigners();
-    
-            var USDT = await ethers.getContractFactory("TetherUSD");
-            var usdt = await USDT.deploy();
-            var addressUSDT = usdt.target
-            
-            var name = "ExampleApple"
-            var symbol = "BTC"
-            var operationAmount = 12000
-            var amountToFinance = 10000
-            var investmentFractions = 10
-            
-            var FinancingContract = await ethers.getContractFactory("FinancingContract1155");
-            var financing = await FinancingContract.deploy(
-                name, symbol, operationAmount, amountToFinance, investmentFractions, addressUSDT
-            );
-    
-            return { usdt, financing, owner, alice, bob, carl, peter }
-        }
-
+    describe("Testing withdrawUSDT", async () => {
         it("Only Admins", async () => {
             var {usdt, financing, owner, alice, bob} = await loadTest();
             // Check that only admins can call the function
@@ -198,12 +198,120 @@ describe("Testing FinancingContract", async () => {
         });
 
 
+        it("Contract Status" ,async () => {
+            var {usdt, financing, owner, alice} = await loadFixture(loadTest);
+            await usdt.approve(financing.address, 20000);
+            await financing.buyFraction(10);
+            expect(financing.contractStatus.to.be.equal(financing.Status.Sold));
+        })
+
+        
+        it("Emit event", async () => {
+            var {usdt, financing, owner} = await loadFixture(loadTest);
+            await usdt.approve(financing.address, 20000);
+            await financing.buyFraction(10);
+            await expect(financing.withdrawUSDT()).to.emit(financing,"WithdrawComplete");
+        })
+    })
+
+    describe("Testing setBuyBack", async () => {
+        it("Only Admins", async () => {
+            var {usdt, financing, owner, alice, bob} = await loadTest();
+            // Check that only admins can call the function
+            await expect(financing.connect(alice).setBuyBack(10)).to.be.reverted;
+        });
+
+        it("Contract Status", async () => {
+            var {usdt, financing, owner} = await loadTest();
+            await usdt.approve(financing.address, 20000);
+            await financing.buyFraction(10);
+            await financing.withdrawUSDT();
+            expect(financing.contractStatus.to.be.equal(financing.Status.Milestones));
+            
+        })
+
+
         it("Profit can't be zero", async () => {
             var {usdt, financing, owner, alice} = await loadTest();
+            await usdt.approve(financing.address, 20000);
+            await financing.buyFraction(10);
+            await financing.withdrawUSDT();
             await expect(financing.setBuyBack(0)).to.revertedWith("Profit can't be zero");
 
         });
 
+
+        it("Not enough USDT balance", async () => {
+            var {usdt, financing, owner, alice} = await loadTest();
+            await usdt.approve(financing.address, 20000);
+            await financing.buyFraction(10);
+            await financing.withdrawUSDT();
+            await expect(financing.connect(alice).setBuyBack(10)).to.revertedWith("Not enough USDT balance");
+        });
+
+        it("Allowance", async () => {
+            var {usdt, financing, owner, alice} = await loadTest();
+            await usdt.approve(financing.address, 20000);
+            await financing.buyFraction(10);
+            await financing.withdrawUSDT();
+            await usdt.mint(alice.address, 100000);
+            await expect(financing.connect(alice).setBuyBack(10)).to.revertedWith("In order to proceed, you must approve the required amount of USDT.");
+        });
+
+        it("Correct amounts", async () => {
+            var {usdt, financing, owner, alice, bob} = await loadTest();
+            await usdt.approve(financing.address, 20000);
+            await financing.buyFraction(10);
+            await financing.withdrawUSDT();
+            let tx = await financing.setBuyBack(10);
+            expect(financing.buyBackPrice.to.be.equal(1100 * (10**6)));
+        });
+
+
+    });
+
+    describe("Testing withdrawBuyBack", async () => {
+        it("Contract Status", async () => {
+            var {usdt, financing, owner} = await loadTest();
+            await usdt.approve(financing.address, 20000);
+            await financing.buyFraction(10);
+            await financing.withdrawUSDT();
+            await financing.setBuyBack(10);
+
+            expect(financing.Status.to.be.equal(financing.Status.Finished));
+        })
+
+        it("Caller has not tokens", async () => {
+            var {usdt, financing, owner} = await loadTest();
+            await usdt.approve(financing.address, 20000);
+            await financing.buyFraction(10);
+            await financing.withdrawUSDT();
+            await financing.setBuyBack(10);
+            await expect(financing.connect(alice).withdrawBuyBack().to.revertedWith("Caller has not tokens"));
+        });
+
+        it("Emit event", async () => {
+            var {usdt, financing, owner} = await loadTest();
+            await usdt.approve(financing.address, 20000);
+            await financing.buyFraction(10);
+            await financing.withdrawUSDT();
+            await financing.setBuyBack(10);
+            let args = [0,1,2,3,4,5,6,7,8,9];
+            await expect(financing.withdrawBuyBack().to.emit(financing, "BurnNfts").withArgs(args));
+        });
+
+        it("Delete balances", async () => {
+            var {usdt, financing, owner} = await loadTest();
+            await usdt.approve(financing.address, 20000);
+            await financing.buyFraction(10);
+            await financing.withdrawUSDT();
+            await financing.setBuyBack(10);
+            await financing.withdrawBuyBack();
+
+            expect(financing.investorIds[owner.address].to.be.equal(0));
+            expect(financing.investorAmounts[owner.address].to.be.equal(0));
+            expect(financing.investorBalances[owner.address].to.be.equal(0));
+        })
     })
 
 
