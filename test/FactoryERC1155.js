@@ -2,6 +2,7 @@ var { loadFixture } = require("@nomicfoundation/hardhat-network-helpers");
 var { expect } = require("chai");
 var { ethers, network, upgrades } = require("hardhat");
 var { time } = require("@nomicfoundation/hardhat-network-helpers");
+const ID = 420;
 
 async function getContract(_add) {
     return await ethers.getContractAt("FinancingContract1155", _add);
@@ -162,18 +163,14 @@ describe("Testing FinancingContract", async () => {
 
         it("Correct Ids, Amounts and Balance", async () => {
             var {usdt, financing, owner, alice, bob, carl} = await loadFixture(loadTest);
-            let ids = [0,1,2,3,4];
-            let amounts = [1,1,1,1,1];
+
             let balance = 5;
             await usdt.approve(financing.target, 20000 * (10**6));
             let tx = await financing.buyFraction(5);
-            const _investorIds = await financing.readInvestorIds(owner.address);
-            const _investorAmounts = await financing.readInvestorAmounts(owner.address);
-            const _investorBalances = await financing.readInvestorBalances(owner.address);
 
-            await expect(_investorIds).to.be.equal(ids);
-            await expect(_investorAmounts).to.be.equal(amounts);
-            await expect(_investorBalances).to.be.equal(balance);
+            const _investorBalance = await financing.balanceOf(owner.address, ID);
+
+            await expect(_investorBalance).to.be.equal(balance);
         });
 
         it("Emit events", async () => {
@@ -293,26 +290,10 @@ describe("Testing FinancingContract", async () => {
             await financing.buyFraction(10);
             await financing.withdrawUSDT();
             await financing.setBuyBack(10);
-            let args = [0,1,2,3,4,5,6,7,8,9];
-            await expect(financing.withdrawBuyBack()).to.emit(financing, "BurnNfts").withArgs(args);
+            let amount = await financing.balanceOf(owner.address, ID);
+            await expect(financing.withdrawBuyBack()).to.emit(financing, "BurnNfts").withArgs(ID, amount);
         });
 
-        it("Delete balances", async () => {
-            var {usdt, financing, owner} = await loadTest();
-            await usdt.approve(financing.target, 25000 * (10**6));
-            await financing.buyFraction(10);
-            await financing.withdrawUSDT();
-            await financing.setBuyBack(10);
-            await financing.withdrawBuyBack();
-            const _investorIds = await financing.readInvestorIds(owner.address);
-            const _investorAmounts = await financing.readInvestorAmounts(owner.address);
-            const _investorBalances = await financing.readInvestorBalances(owner.address);
-            const arrayVacio = [];
-
-            expect(_investorIds).to.be.equal(arrayVacio);
-            expect(_investorAmounts).to.be.equal(arrayVacio);
-            expect(_investorBalances).to.be.equal(0);
-        })
     })
 
 

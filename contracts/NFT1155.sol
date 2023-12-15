@@ -127,20 +127,18 @@ contract FinancingContract1155 is ERC1155, ERC1155Pausable, AccessControl, ERC11
 
     string  public   name;                 // Nombre de la coleccion
     string  public   symbol;               // Symbolo de identificacion
-    uint256 private  _nextTokenId;         // Proximo NFT a mintear
+    uint256 public   ID = 420;             // Id de los NFTs
     uint256 public   operationAmount;      // Monton total de operacion
     uint256 public   amountToFinance;      // Monto total a financiar
     uint256 public   investmentFractions;  // Cantidad de fracciones totales 
     uint256 public   fractionPrice;        // Precio de cada fraccion
     uint256 public   buyBackPrice;         // Valor de cada fraccion sumando el profit
+    uint256 public   investedFractions;    // Fracciones ya compradas
     IUSDT            usdt;                 // Interfaz de USDT Tether
 
     function readBuyBackPrice() public view returns (uint256) {
         return buyBackPrice;
     }
-
-    // Solo si se implementa la forma 2 de compra
-    uint256 public   totalSupply;          // Tokens minteados hasta el momento
 
     // Estructura que almacena el historial de compras realizadas
     struct HistoryFractions {
@@ -152,20 +150,6 @@ contract FinancingContract1155 is ERC1155, ERC1155Pausable, AccessControl, ERC11
     // Array que almacena el historial de compras realizadas (almacena el struct)
     HistoryFractions[] public historyFractions;
 
-    // MAPPINGS
-    mapping (address => uint256) investorBalances; // Almacena la cantidad de NFTs de cada inversor
-    mapping (address => uint256[]) investorIds; // Almacena en un array los IDs de cada inversor
-    mapping (address => uint256[]) investorAmounts; // Almacena en un array la cantidad de cada ID que tiene cada inversor (siempre es 1)
-
-    function readInvestorBalances(address _address) public view returns(uint256) {
-        return investorBalances[_address];
-    }
-    function readInvestorIds(address _address) public view returns(uint256[] memory) {
-        return investorIds[_address];
-    }
-    function readInvestorAmounts(address _address) public view returns(uint256[] memory) {
-        return investorAmounts[_address];
-    }
 
     // Enumerable que representa el estado en el que se encuentra el contrato
     enum Status {
@@ -186,7 +170,7 @@ contract FinancingContract1155 is ERC1155, ERC1155Pausable, AccessControl, ERC11
     event Invest(address investor, uint256 fractions); // Inversion o compra realizada
     event TotalAmountFinanced(); // Monto total financiado
     event WithdrawComplete(); // Retiro del monto total completado
-    event BurnNfts(uint256[] tokenIds); // NFTs quemados
+    event BurnNfts(uint256 tokenId, uint256 amount); // NFTs quemados
 
     constructor(
         string memory _name,
@@ -221,7 +205,7 @@ contract FinancingContract1155 is ERC1155, ERC1155Pausable, AccessControl, ERC11
         // Verifica que la cantidad de fracciones a invertir sea mayor a 0
         require(_amount > 0, "Amount cannot be zero.");
         // Verifica que la cantidad de fracciones a comprar sea menor al total
-        require(_amount <= investmentFractions, "Amount to buy exceedes total fractions.");
+        require(_amount <= (investmentFractions - investedFractions), "Amount to buy exceedes total fractions.");
         // Verifica que el balance del comprador sea suficiente para la compra
         require(usdt.balanceOf(msg.sender) >= priceInWei, 
             "Insufficient USDT balance.");
@@ -232,28 +216,15 @@ contract FinancingContract1155 is ERC1155, ERC1155Pausable, AccessControl, ERC11
         require(usdt.transferFrom(msg.sender, address(this), priceInWei), 
             "USDT transfer error.");
 
-        // SE CREAN LOS ARRAY PARA REALIZAR EL MINTEO EN BLOQUES
-        uint256[] memory _ids = new uint256[](_amount); 
-        uint256[] memory _amounts = new uint256[](_amount);
-
-        // SE ALMACENAN LOS DATOS DEL TOKEN EN LOS MAPPING DEL INVERSOR
-        for (uint8 i=0; i<_amount; i++) {
-            _ids[i] = _nextTokenId;
-            investorIds[msg.sender].push(_nextTokenId);
-            _amounts[i] = 1;
-            investorAmounts[msg.sender].push(1);
-            _nextTokenId++;
-        }
-
         // MINT EN BLOQUES
-        _mintBatch(msg.sender, _ids, _amounts,"");
-        investorBalances[msg.sender] += _amount;
+        _mint(msg.sender, ID, _amount,"");
 
         // Se emite el evento
         emit Invest(msg.sender, _amount);
 
         // Verifica si se han vendido todas las fracciones, en ese caso cambia el estado del contrato y emite el evento
-        if (_nextTokenId == (investmentFractions)){
+        investedFractions += _amount;
+        if (investedFractions == (investmentFractions)){
             contractStatus = Status.Sold;
             emit TotalAmountFinanced();
         }
@@ -267,42 +238,42 @@ contract FinancingContract1155 is ERC1155, ERC1155Pausable, AccessControl, ERC11
         historyFractions.push(HistoryFractions(fractions, timestamp, owner));
     }
 
-    function buyFraction2(uint256[] memory _ids, uint256[] memory _amount) public whenNotPaused {
-        // Cantidad a comprar
-        uint256 amount = _amount.length;
-        // Le agrega los seis decimales
-        uint256 priceInWei = (fractionPrice * (10**6)) * amount;
-        // Verifica que la cantidad de fracciones a invertir sea mayor a 0
-        require(amount > 0, "Amount cannot be zero.");
-        // Verifica que el contrato este en el estado de venta o "OnSale"
-        require(contractStatus == Status.OnSale, "The sale is closed.");
-        // Verifica que la cantidad de fracciones a comprar sea menor al total
-        require(amount <= investmentFractions, "Amount to buy exceedes total fractions.");
-        // Verifica que el suministro actual sumado a amount no supere el total
-        require(totalSupply + amount <= investmentFractions, "Exceeding total fractions.");
-        // Verifica que el balance del comprador sea suficiente para la compra
-        require(usdt.balanceOf(msg.sender) >= priceInWei, 
-            "Insufficient USDT balance.");
-        // Verifica que el contrato tenga permiso de utilizar los fondos del comprador
-        require(usdt.allowance(msg.sender, address(this)) >= priceInWei, 
-            "In order to proceed, you must approve the required amount of USDT.");
-        // Realiza la transferencia de los fondos hacia el contrato y verifica que la transaccion sea exitosa
-        require(usdt.transferFrom(msg.sender, address(this), priceInWei), 
-            "USDT transfer error.");
+    // function buyFraction2(uint256[] memory _ids, uint256[] memory _amount) public whenNotPaused {
+    //     // Cantidad a comprar
+    //     uint256 amount = _amount.length;
+    //     // Le agrega los seis decimales
+    //     uint256 priceInWei = (fractionPrice * (10**6)) * amount;
+    //     // Verifica que la cantidad de fracciones a invertir sea mayor a 0
+    //     require(amount > 0, "Amount cannot be zero.");
+    //     // Verifica que el contrato este en el estado de venta o "OnSale"
+    //     require(contractStatus == Status.OnSale, "The sale is closed.");
+    //     // Verifica que la cantidad de fracciones a comprar sea menor al total
+    //     require(amount <= investmentFractions, "Amount to buy exceedes total fractions.");
+    //     // Verifica que el suministro actual sumado a amount no supere el total
+    //     require(totalSupply + amount <= investmentFractions, "Exceeding total fractions.");
+    //     // Verifica que el balance del comprador sea suficiente para la compra
+    //     require(usdt.balanceOf(msg.sender) >= priceInWei, 
+    //         "Insufficient USDT balance.");
+    //     // Verifica que el contrato tenga permiso de utilizar los fondos del comprador
+    //     require(usdt.allowance(msg.sender, address(this)) >= priceInWei, 
+    //         "In order to proceed, you must approve the required amount of USDT.");
+    //     // Realiza la transferencia de los fondos hacia el contrato y verifica que la transaccion sea exitosa
+    //     require(usdt.transferFrom(msg.sender, address(this), priceInWei), 
+    //         "USDT transfer error.");
 
-        // Mint en bloques
-        _mintBatch(msg.sender, _ids, _amount,"");
-        totalSupply += amount;
+    //     // Mint en bloques
+    //     _mintBatch(msg.sender, _ids, _amount,"");
+    //     totalSupply += amount;
 
-        // Se emite el evento
-        emit Invest(msg.sender, amount);
+    //     // Se emite el evento
+    //     emit Invest(msg.sender, amount);
 
-        // Verifica si se han vendido todas las fracciones, en ese caso cambia el estado del contrato y emite el evento
-        if (totalSupply == investmentFractions){
-            contractStatus = Status.Sold;
-            emit TotalAmountFinanced();
-        }
-    }
+    //     // Verifica si se han vendido todas las fracciones, en ese caso cambia el estado del contrato y emite el evento
+    //     if (totalSupply == investmentFractions){
+    //         contractStatus = Status.Sold;
+    //         emit TotalAmountFinanced();
+    //     }
+    // }
     // Funcion que ejecutan los Admins para retirar los montos financiados
 
     function withdrawUSDT() public onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -348,23 +319,16 @@ contract FinancingContract1155 is ERC1155, ERC1155Pausable, AccessControl, ERC11
     function withdrawBuyBack() public {
         // Verifica que el estado del contrato sea "Finished"
         require(contractStatus == Status.Finished, "Contract is not finished.");
-        // Verifica que coincidan la longitud de los array de los inversores y que este valor coincida con el balance de cada inversor
-        require(investorIds[msg.sender].length == investorAmounts[msg.sender].length);
-        require(investorIds[msg.sender].length == investorBalances[msg.sender]);
-        // Si los valores coinciden nftsAmount toma ese valor
-        uint256 nftsAmount = investorBalances[msg.sender];
+
+        uint256 nftsAmount = balanceOf(msg.sender, ID);
         // Verifica que este valor sea mayor a 0
         require(nftsAmount > 0, "Caller has not tokens.");
         // Calcula el monto total a retirar
         uint256 totalAmount = nftsAmount * buyBackPrice;
         // Se queman los NFTs en bloque
-        _burnBatch(msg.sender, investorIds[msg.sender], investorAmounts[msg.sender]);
+        _burn(msg.sender, ID, nftsAmount);
         // Se emite el evento
-        emit BurnNfts(investorIds[msg.sender]);
-        // Se borran los datos almacenados en los mappings del inversor
-        delete investorIds[msg.sender];
-        delete investorAmounts[msg.sender];
-        delete investorBalances[msg.sender];
+        emit BurnNfts(ID, nftsAmount);
         // Se realiza la transferencia del dinero a su wallet
         usdt.transfer(msg.sender, totalAmount);
     }
