@@ -74,11 +74,6 @@ This contract is ERC1155 and offers several features and functions.
 
 - `getHistorial()`: Returns the history of fractions.
 
-This summary provides a technical overview of the TruMarket project and its contracts. Is there anything else I can assist you with?
-
-
-
-
 
 # DIAGRAM
 
