@@ -48,7 +48,7 @@ getAddresses()
 -Utiliza la interface un ERC20 en este caso USDT para utilizar sus métodos en los contratos. (transferFrom(), decimals(), allowance(), transfer(), approve(), balanceOf())
 
 2- FinancingContract1155
--Es un contrato ERC1155. Con la capacidad de...
+-Es un contrato ERC1155. 
 
 //Variables
 
@@ -155,3 +155,69 @@ Se emite el evento WithdrawComplete() para notiticar que se retiro el balance.
 
 getHistorial()
 Esta funcion retorna el array con el historial de fracciones.
+
+
+
+
+// DIAGRAMA
+![Alt text](image.png)
+
+
+CODE UML
+@startuml
+
+skinparam participant {
+    BackgroundColor DarkSeaGreen
+    BorderColor DarkSlateGray
+}
+
+skinparam note {
+    BackgroundColor LightYellow
+    BorderColor DarkSlateGray
+}
+
+participant Comprador
+participant "TruMarket" as TruMarket
+participant Inversores
+participant Proveedores
+
+autonumber
+
+== Pedido ==
+
+Comprador -> TruMarket: Realiza pedido
+TruMarket -> TruMarket: Crea contrato y NFTs
+note right: Genera contrato\ny NFTs
+
+== Financiación ==
+
+TruMarket --> Inversores: Oferta de NFTs
+Inversores -> TruMarket: Compra NFTs
+note left: Inversores\ncompran NFTs
+
+== Transacción y Entrega ==
+
+alt Financiamiento completado
+    TruMarket -> TruMarket: Convierte crypto a FIAT
+    note right: Convierte\ncrypto a FIAT
+    TruMarket -> Proveedores: Paga con FIAT
+    note right: Paga a\nproveedores
+    Proveedores -> Proveedores: Prepara y despacha mercadería
+    note right: Prepara y\ndespacha mercadería
+    Proveedores --> Comprador: Envía mercadería
+    note left: Envía mercadería\nal comprador
+    Comprador --> TruMarket: Paga monto total
+    note right: Paga monto total
+    TruMarket -> TruMarket: Convierte FIAT a crypto
+    note right: Convierte\nFIAT a crypto
+    TruMarket -> Inversores: Paga ganancias recomprando NFTs
+    note left: Paga ganancias\na inversores
+else Financiamiento no completado
+    TruMarket -> TruMarket: Cancela transacción
+    note right: Cancela\ntransacción
+end
+
+@enduml
+
+
+
