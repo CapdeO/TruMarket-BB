@@ -79,11 +79,9 @@ This contract is ERC1155 and offers several features and functions.
 
 ![Alt text](image.png)
 
-
 ### Sequence Diagram: TruMarket Transaction Flow
 
-```plantuml
-@startuml
+```@startuml
 
 skinparam participant {
     BackgroundColor DarkSeaGreen
@@ -95,48 +93,48 @@ skinparam note {
     BorderColor DarkSlateGray
 }
 
-participant Comprador
+participant Buyer
 participant "TruMarket" as TruMarket
-participant Inversores
-participant Proveedores
+participant Investors
+participant Suppliers
 
 autonumber
 
-== Pedido ==
+== Order ==
 
-Comprador -> TruMarket: Realiza pedido
-TruMarket -> TruMarket: Crea contrato y NFTs
-note right: Genera contrato\ny NFTs
+Buyer -> TruMarket: Places order
+TruMarket -> TruMarket: Creates contract and NFTs
+note right: Generates contract\nand NFTs
 
-== Financiación ==
+== Financing ==
 
-TruMarket --> Inversores: Oferta de NFTs
-Inversores -> TruMarket: Compra NFTs
-note left: Inversores\ncompran NFTs
+TruMarket --> Investors: Offers NFTs
+Investors -> TruMarket: Purchase NFTs
+note left: Investors\npurchase NFTs
 
-== Transacción y Entrega ==
+== Transaction and Delivery ==
 
-alt Financiamiento completado
-    TruMarket -> TruMarket: Convierte crypto a FIAT
-    note right: Convierte\ncrypto a FIAT
-    TruMarket -> Proveedores: Paga con FIAT
-    note right: Paga a\nproveedores
-    Proveedores -> Proveedores: Prepara y despacha mercadería
-    note right: Prepara y\ndespacha mercadería
-    Proveedores --> Comprador: Envía mercadería
-    note left: Envía mercadería\nal comprador
-    Comprador --> TruMarket: Paga monto total
-    note right: Paga monto total
-    TruMarket -> TruMarket: Convierte FIAT a crypto
-    note right: Convierte\nFIAT a crypto
-    TruMarket -> Inversores: Paga ganancias recomprando NFTs
-    note left: Paga ganancias\na inversores
-else Financiamiento no completado
-    TruMarket -> TruMarket: Cancela transacción
-    note right: Cancela\ntransacción
+alt Financing Completed
+    TruMarket -> TruMarket: Converts crypto to FIAT
+    note right: Converts\ncrypto to FIAT
+    TruMarket -> Suppliers: Pays with FIAT
+    note right: Pays to\nsuppliers
+    Suppliers -> Suppliers: Prepares and ships merchandise
+    note right: Prepares and\nships merchandise
+    Suppliers --> Buyer: Sends merchandise
+    note left: Sends merchandise\nto buyer
+    Buyer --> TruMarket: Pays total amount
+    note right: Pays total amount
+    TruMarket -> TruMarket: Converts FIAT to crypto
+    note right: Converts\nFIAT to crypto
+    TruMarket -> Investors: Pays profits by repurchasing NFTs
+    note left: Pays profits\nto investors
+else Financing Not Completed
+    TruMarket -> TruMarket: Cancels transaction
+    note right: Cancels\ntransaction
 end
 
-@enduml 
+@enduml
 
 ``` 
 
