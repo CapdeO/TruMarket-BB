@@ -127,7 +127,7 @@ contract FinancingContract1155 is ERC1155, ERC1155Pausable, AccessControl, ERC11
 
     string  public   name;                 // Nombre de la coleccion
     string  public   symbol;               // Symbolo de identificacion
-    uint256 public   ID = 420;             // Id de los NFTs
+    uint256 public   ID;                   // Id de los NFTs
     uint256 public   operationAmount;      // Monton total de operacion
     uint256 public   amountToFinance;      // Monto total a financiar
     uint256 public   investmentFractions;  // Cantidad de fracciones totales 
@@ -191,6 +191,7 @@ contract FinancingContract1155 is ERC1155, ERC1155Pausable, AccessControl, ERC11
         amountToFinance = _amountToFinance;
         investmentFractions = _investmentFractions;
         fractionPrice = amountToFinance / investmentFractions;
+        ID = 
 
         contractStatus = Status.OnSale;
     }
@@ -219,6 +220,7 @@ contract FinancingContract1155 is ERC1155, ERC1155Pausable, AccessControl, ERC11
         // MINT EN BLOQUES
         _mint(msg.sender, ID, _amount,"");
 
+
         // Se emite el evento
         emit Invest(msg.sender, _amount);
 
@@ -238,42 +240,6 @@ contract FinancingContract1155 is ERC1155, ERC1155Pausable, AccessControl, ERC11
         historyFractions.push(HistoryFractions(fractions, timestamp, owner));
     }
 
-    // function buyFraction2(uint256[] memory _ids, uint256[] memory _amount) public whenNotPaused {
-    //     // Cantidad a comprar
-    //     uint256 amount = _amount.length;
-    //     // Le agrega los seis decimales
-    //     uint256 priceInWei = (fractionPrice * (10**6)) * amount;
-    //     // Verifica que la cantidad de fracciones a invertir sea mayor a 0
-    //     require(amount > 0, "Amount cannot be zero.");
-    //     // Verifica que el contrato este en el estado de venta o "OnSale"
-    //     require(contractStatus == Status.OnSale, "The sale is closed.");
-    //     // Verifica que la cantidad de fracciones a comprar sea menor al total
-    //     require(amount <= investmentFractions, "Amount to buy exceedes total fractions.");
-    //     // Verifica que el suministro actual sumado a amount no supere el total
-    //     require(totalSupply + amount <= investmentFractions, "Exceeding total fractions.");
-    //     // Verifica que el balance del comprador sea suficiente para la compra
-    //     require(usdt.balanceOf(msg.sender) >= priceInWei, 
-    //         "Insufficient USDT balance.");
-    //     // Verifica que el contrato tenga permiso de utilizar los fondos del comprador
-    //     require(usdt.allowance(msg.sender, address(this)) >= priceInWei, 
-    //         "In order to proceed, you must approve the required amount of USDT.");
-    //     // Realiza la transferencia de los fondos hacia el contrato y verifica que la transaccion sea exitosa
-    //     require(usdt.transferFrom(msg.sender, address(this), priceInWei), 
-    //         "USDT transfer error.");
-
-    //     // Mint en bloques
-    //     _mintBatch(msg.sender, _ids, _amount,"");
-    //     totalSupply += amount;
-
-    //     // Se emite el evento
-    //     emit Invest(msg.sender, amount);
-
-    //     // Verifica si se han vendido todas las fracciones, en ese caso cambia el estado del contrato y emite el evento
-    //     if (totalSupply == investmentFractions){
-    //         contractStatus = Status.Sold;
-    //         emit TotalAmountFinanced();
-    //     }
-    // }
     // Funcion que ejecutan los Admins para retirar los montos financiados
 
     function withdrawUSDT() public onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -286,7 +252,7 @@ contract FinancingContract1155 is ERC1155, ERC1155Pausable, AccessControl, ERC11
         // Cambia el estado de contrato a Milestones
         contractStatus = Status.Milestones;
         // Emite el evento
-        emit WithdrawComplete();
+        emit WithdrawComplete(msg.sender, contractBalance);
     }
 
     // Funcion que ejecuta el Admin para ingresar el monto financiado mas el profit hacia el contrato
@@ -305,7 +271,7 @@ contract FinancingContract1155 is ERC1155, ERC1155Pausable, AccessControl, ERC11
         require(usdt.allowance(msg.sender, address(this)) >= totalAmount, 
             "In order to proceed, you must approve the required amount of USDT.");
         // Realiza la transferencia de los fondos hacia el contrato
-        usdt.transferFrom(msg.sender, address(this), totalAmount);
+        require(usdt.transferFrom(msg.sender, address(this), totalAmount), "USDT transfer error.");
         // Calcula el valor de las fracciones mas el profit
         buyBackPrice = fractionPrice + ((fractionPrice * profit) / 100);
         buyBackPrice = buyBackPrice * (10**6);
@@ -316,7 +282,7 @@ contract FinancingContract1155 is ERC1155, ERC1155Pausable, AccessControl, ERC11
 
     // Funcion que ejecutan los inversores para retirar las ganancias
 
-    function withdrawBuyBack() public {
+    function withdrawBuyBack() whenNotPaused public {
         // Verifica que el estado del contrato sea "Finished"
         require(contractStatus == Status.Finished, "Contract is not finished.");
 
@@ -330,7 +296,7 @@ contract FinancingContract1155 is ERC1155, ERC1155Pausable, AccessControl, ERC11
         // Se emite el evento
         emit BurnNfts(ID, nftsAmount);
         // Se realiza la transferencia del dinero a su wallet
-        usdt.transfer(msg.sender, totalAmount);
+        require(usdt.transfer(msg.sender, totalAmount), "USDT transfer error.");
     }
 
 

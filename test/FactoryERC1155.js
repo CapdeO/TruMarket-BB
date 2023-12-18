@@ -134,7 +134,7 @@ describe("Testing FinancingContract", async () => {
         it("Contract Status", async () => {
             var {usdt, financing} = await loadFixture(loadTest);
 
-            await expect(financing.contractStatus).to.be.equal(financing.Status.onSale);
+            await expect(financing.contractStatus).to.be.equal(financing.Status);
 
         });
 
@@ -196,7 +196,8 @@ describe("Testing FinancingContract", async () => {
             await usdt.approve(financing.target, 20000 * (10**6));
             await financing.buyFraction(10);
             const _status = await financing.readStatus();
-            expect(financing.contractStatus).to.be.equal(_status);
+            console.log(_status);
+            expect(_status).to.be.equal(2);
         })
 
         
@@ -220,7 +221,7 @@ describe("Testing FinancingContract", async () => {
             await usdt.approve(financing.target, 20000 * (10**6));
             await financing.buyFraction(10);
             await financing.withdrawUSDT();
-            expect(financing.contractStatus).to.be.equal(financing.Status.Milestones);
+            expect(financing.contractStatus).to.be.equal("Milestonsses");
             
         })
 
