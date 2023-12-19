@@ -2,7 +2,7 @@ var { loadFixture } = require("@nomicfoundation/hardhat-network-helpers");
 var { expect } = require("chai");
 var { ethers, network, upgrades } = require("hardhat");
 var { time } = require("@nomicfoundation/hardhat-network-helpers");
-const ID = 420;
+ID = 0;
 
 async function getContract(_add) {
     return await ethers.getContractAt("FinancingContract1155", _add);
@@ -82,29 +82,6 @@ describe("Testing FactoryERC1155", () => {
             expect(await factory.contractsCounter()).to.be.equal(2)
         });
 
-        // it("Invest", async () => {
-        //     var { factory, usdt, alice } = await loadFixture(loadTest);
-
-        //     let name = 'Contract'
-        //     let amountToFinance = 20000
-        //     let fractions = 200
-        //     let price = (amountToFinance / fractions) * (10 ** 6)
-        //     await factory.FactoryFunc(name, amountToFinance, fractions, usdt.target);
-        //     let array = await factory.getAddresses()
-        //     let address = array[0]
-        //     let newERC1155Contract = await getContract(address)
-        //     let NFTsAmount = 5
-        //     let NFTsPriceInWei = NFTsAmount * price
-
-        //     await usdt.mint(alice, NFTsPriceInWei)
-        //     await usdt.connect(alice).approve(newERC1155Contract.target, NFTsPriceInWei)
-
-        //     await newERC1155Contract.connect(alice).buyFraction(NFTsAmount)
-
-        //     expect(await newERC1155Contract.balanceOf(alice.address)).to.be.equal(NFTsAmount)
-        //     expect(await usdt.balanceOf(newERC1155Contract.target)).to.be.equal(NFTsPriceInWei)
-        //     expect(await usdt.balanceOf(alice.address)).to.be.equal(0)
-        // });
     });
 });
 
@@ -124,17 +101,17 @@ describe("Testing FinancingContract", async () => {
         
         var FinancingContract = await ethers.getContractFactory("FinancingContract1155");
         var financing = await FinancingContract.deploy(
-            name, symbol, operationAmount, amountToFinance, investmentFractions, addressUSDT
+            name, symbol, operationAmount, amountToFinance, investmentFractions, addressUSDT, 0
         );
 
-        return { usdt, financing, owner, alice, bob, carl, peter }
+        return { usdt, financing, owner, alice, bob, carl, peter, amountToFinance }
     }
 
     describe("Testing buyFraction", async () => {
         it("Contract Status", async () => {
             var {usdt, financing} = await loadFixture(loadTest);
-
-            await expect(financing.contractStatus).to.be.equal(financing.Status);
+            const _status = await financing.readStatus();
+            expect(_status).to.be.equal(0);
 
         });
 
@@ -147,7 +124,7 @@ describe("Testing FinancingContract", async () => {
 
         it("Amount to buy exceedes total fractions", async () => {
             var {usdt, financing, owner} = await loadFixture(loadTest);
-            await expect(financing.buyFraction(12)).to.be.revertedWith("Amount to buy exceedes total fractions.");
+            await expect(financing.buyFraction(12)).to.be.revertedWith("Amount to buy exceeds total fractions.");
         });
 
         it("Insufficient USDT balance", async () => {
@@ -158,7 +135,7 @@ describe("Testing FinancingContract", async () => {
         it("Allowance", async () => {
             var {usdt, financing, owner, alice} = await loadFixture(loadTest);
             await usdt.mint(alice.address, 100000 * (10**6));
-            await expect(financing.connect(alice).buyFraction(1)).to.be.revertedWith("In order to proceed, you must approve the required amount of USDT.");
+            await expect(financing.connect(alice).buyFraction(1)).to.be.revertedWith("Approve the required amount of USDT.");
         });
 
         it("Correct Ids, Amounts and Balance", async () => {
@@ -179,7 +156,7 @@ describe("Testing FinancingContract", async () => {
 
             await expect(financing.buyFraction(1)).to.emit(financing, "Invest").withArgs(owner.address, 1);
 
-            await expect(financing.buyFraction(9)).to.emit(financing, "TotalAmountFinanced");
+            await expect(financing.buyFraction(9)).to.emit(financing, "TotalAmountFinanced").withArgs(10000, [owner.address, owner.address]);
         });
     })
 
@@ -196,8 +173,7 @@ describe("Testing FinancingContract", async () => {
             await usdt.approve(financing.target, 20000 * (10**6));
             await financing.buyFraction(10);
             const _status = await financing.readStatus();
-            console.log(_status);
-            expect(_status).to.be.equal(2);
+            expect(_status).to.be.equal(1);
         })
 
         
@@ -205,7 +181,7 @@ describe("Testing FinancingContract", async () => {
             var {usdt, financing, owner} = await loadFixture(loadTest);
             await usdt.approve(financing.target, 20000 * (10**6));
             await financing.buyFraction(10);
-            await expect(financing.withdrawUSDT()).to.emit(financing,"WithdrawComplete");
+            await expect(financing.withdrawUSDT()).to.emit(financing,"WithdrawComplete").withArgs(owner.address, 10000 * (10**6));
         })
     })
 
@@ -221,7 +197,8 @@ describe("Testing FinancingContract", async () => {
             await usdt.approve(financing.target, 20000 * (10**6));
             await financing.buyFraction(10);
             await financing.withdrawUSDT();
-            expect(financing.contractStatus).to.be.equal("Milestonsses");
+            const _status = await financing.readStatus();
+            expect(_status).to.be.equal(2);
             
         })
 
@@ -273,7 +250,8 @@ describe("Testing FinancingContract", async () => {
             await financing.withdrawUSDT();
             await financing.setBuyBack(10);
 
-            expect(financing.Status).to.be.equal(financing.Status.Finished);
+            const _status = await financing.readStatus();
+            expect(_status).to.be.equal(3);
         })
 
         it("Caller has not tokens", async () => {
@@ -282,7 +260,7 @@ describe("Testing FinancingContract", async () => {
             await financing.buyFraction(10);
             await financing.withdrawUSDT();
             await financing.setBuyBack(10);
-            await expect(financing.connect(alice).withdrawBuyBack()).to.revertedWith("Caller has not tokens.");
+            await expect(financing.connect(alice).withdrawBuyBack()).to.revertedWith("Caller has no tokens.");
         });
 
         it("Emit event", async () => {

@@ -106,7 +106,8 @@ contract Factory is
             _operationAmount,
             _amountToFinance,
             _investmentFractions,
-            _addUsdc
+            _addUsdc,
+            contractsCounter
         );
 
         address newContractAdd = address(newContract);
@@ -148,8 +149,6 @@ interface IUSDT {
     function balanceOf(address account) external view returns (uint256);
 }
 
-// SPDX-License-Identifier: MIT
-// pragma solidity ^0.8.18;
 
 /**
  * @title FinancingContract1155
@@ -170,6 +169,7 @@ contract FinancingContract1155 is ERC1155, ERC1155Pausable, AccessControl, ERC11
     uint256 public   fractionPrice;        // Price of each fraction
     uint256 public   buyBackPrice;         // Value of each fraction including profit
     uint256 public   investedFractions;    // Fractions already purchased
+    address[] public investors;            // Ivestors
     IUSDT            usdt;                 // USDT Tether interface
 
     function readBuyBackPrice() public view returns (uint256) {
@@ -207,8 +207,8 @@ contract FinancingContract1155 is ERC1155, ERC1155Pausable, AccessControl, ERC11
     /* ========== EVENTS ========== */
 
     event Invest(address investor, uint256 fractions); // Investment or purchase made
-    event TotalAmountFinanced(); // Total amount financed
-    event WithdrawComplete(); // Withdrawal of total amount completed
+    event TotalAmountFinanced(uint256 amount, address[] investors); // Total amount financed
+    event WithdrawComplete(address admin, uint256 amount); // Withdrawal of total amount completed
     event BurnNfts(uint256 tokenId, uint256 amount); // NFTs burned
 
     /**
@@ -226,7 +226,8 @@ contract FinancingContract1155 is ERC1155, ERC1155Pausable, AccessControl, ERC11
         uint256 _operationAmount,
         uint256 _amountToFinance,
         uint256 _investmentFractions,
-        address _addUsdt
+        address _addUsdt,
+        uint256 _id
     ) ERC1155("") {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(PAUSER_ROLE, msg.sender);
@@ -239,7 +240,7 @@ contract FinancingContract1155 is ERC1155, ERC1155Pausable, AccessControl, ERC11
         amountToFinance = _amountToFinance;
         investmentFractions = _investmentFractions;
         fractionPrice = amountToFinance / investmentFractions;
-        ID = 0;
+        ID = _id;
 
         contractStatus = Status.OnSale;
     }
@@ -270,11 +271,13 @@ contract FinancingContract1155 is ERC1155, ERC1155Pausable, AccessControl, ERC11
         // Emit the event
         emit Invest(msg.sender, _amount);
 
+        investors.push(msg.sender);
+
         // Check if all fractions have been sold; if so, change the contract status and emit the event
         investedFractions += _amount;
         if (investedFractions == investmentFractions){
             contractStatus = Status.Sold;
-            emit TotalAmountFinanced();
+            emit TotalAmountFinanced(amountToFinance, investors);
         }
 
         // Store data in the fractions purchase history
@@ -303,7 +306,7 @@ contract FinancingContract1155 is ERC1155, ERC1155Pausable, AccessControl, ERC11
     }
 
 /**
- * @title Financing and BuyBack Mechanism
+ * @dev Financing and BuyBack Mechanism
  * @dev Allows the Admin to inject financed amount plus profit into the contract and enables profit withdrawal for investors.
  */
 function setBuyBack(uint256 profit) public onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -385,4 +388,6 @@ function _beforeTokenTransfer(address operator, address from, address to, uint25
     override(ERC1155, ERC1155Pausable)
 {
     super._beforeTokenTransfer(operator, from, to, ids, amounts, data);
+    }
+
 }
