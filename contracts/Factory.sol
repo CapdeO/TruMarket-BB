@@ -90,7 +90,7 @@ contract Factory is
         uint256 _amountToFinance,
         uint256 _investmentFractions,
         address _addUsdc
-    ) public returns (address) {
+    ) public onlyRole(DEFAULT_ADMIN_ROLE) whenNotPaused returns (address)  {
         contractsCounter += 1;
 
         string memory _symbol = string(

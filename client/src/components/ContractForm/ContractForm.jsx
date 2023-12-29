@@ -13,6 +13,7 @@ const ContractForm = () => {
 
     const nameRef = useRef(null);
 
+    const [operationAmount, setoperationAmount] = useState('');
     const [totalAmount, setTotalAmount] = useState('');
     const [NFTsAmount, setNFTsAmount] = useState('');
     const [NFTPrice, setNFTPrice] = useState(0);
@@ -57,7 +58,7 @@ const ContractForm = () => {
             text: 'Processing transaction. Please wait',
             active: true,
         })
-        factoryFunc(nameInput, totalAmount, NFTsAmount)
+        factoryFunc(nameInput, operationAmount, totalAmount, NFTsAmount)
             .then(async (tx) => {
                 await tx.wait()
                 WaitingTransaction({ active: false })
@@ -94,6 +95,11 @@ const ContractForm = () => {
         }
     };
 
+    const handleOperationAmountChange = (event) => {
+        if (event.target.value > 0 || event.target.value == '')
+            setoperationAmount(event.target.value);
+    };
+
     const handleTotalAmountChange = (event) => {
         if (event.target.value > 0 || event.target.value == '')
             setTotalAmount(event.target.value);
@@ -113,6 +119,11 @@ const ContractForm = () => {
                     <Form.Group className="mb-3" controlId="formName">
                         <Form.Label>Contract Name</Form.Label>
                         <Form.Control ref={nameRef} type="text" placeholder="Enter name" required />
+                    </Form.Group>
+
+                    <Form.Group className="mb-3" controlId="formOperationAmount">
+                        <Form.Label>Operation amount</Form.Label>
+                        <Form.Control type="number" placeholder="Enter operation amount" value={operationAmount} onChange={handleOperationAmountChange} required />
                     </Form.Group>
 
                     <Form.Group className="mb-3" controlId="formTotalAmount">
@@ -137,7 +148,7 @@ const ContractForm = () => {
 
 
 
-                    <Row>
+                    {/* <Row>
                         <Col xs={8}>
                             <Form.Group className="mb-3" controlId="formMilestonesAmount">
                                 <Form.Label>Milestones</Form.Label>
@@ -147,9 +158,9 @@ const ContractForm = () => {
                         <Col className='centrado'>
                             <h5>{milestones}</h5>
                         </Col>
-                    </Row>
+                    </Row> */}
 
-                    <Row>
+                    {/* <Row>
                         <Col xs={1}>
                             <Form.Label>#</Form.Label>
                         </Col>
@@ -159,7 +170,7 @@ const ContractForm = () => {
                         <Col xs={2}>
                             <Form.Label>%</Form.Label>
                         </Col>
-                    </Row>
+                    </Row> */}
 
 
                     {/* <Row>
@@ -178,7 +189,7 @@ const ContractForm = () => {
                         </Col>
                     </Row> */}
 
-                    {milestoneData.map((milestone) => (
+                    {/* {milestoneData.map((milestone) => (
 
                         <Form.Group key={milestone.id} controlId={`milestone-${milestone.id}`}>
                             <Fade left >
@@ -207,7 +218,7 @@ const ContractForm = () => {
                                 </Row>
                             </Fade>
                         </Form.Group>
-                    ))}
+                    ))} */}
 
 
                     {/* <Form.Group className="mb-3" controlId="formBasicPassword">

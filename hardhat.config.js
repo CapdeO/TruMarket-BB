@@ -33,18 +33,10 @@ module.exports = {
       gas: "auto",
       gasPrice: "auto",
     },
-    sepolia: {
-      url: process.env.SEPOLIA_TESNET_URL,
-      accounts: [process.env.PRIVATE_KEY || ""],
-      timeout: 0,
-      gas: "auto",
-      gasPrice: "auto",
-    },
   },
   etherscan: {
     apiKey: {
       polygonMumbai: process.env.API_KEY_POLYGONSCAN,
-      sepolia: process.env.API_KEY_ETHERSCAN,
       goerli: process.env.API_KEY_ETHERSCAN,
     },
   },

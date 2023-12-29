@@ -1,11 +1,9 @@
 const { ethers, upgrades } = require("hardhat");
 
 // --------->>>>>>>>>>>>>>>>>>>>>>     MUMBAI TESTNET
-// USDT ADDRESS:           0xC1C86c89f795F161F82f77Ee6213D47460fEb4aE
-// FACTORY PROXY ADDRESS:  0xe45e3e764F6e754d3C00D98AAC924e5f2147b319
-// FACTORY IMPL 1 ADDRESS: 0xd1318627cB29F8002dA3C74A200C1a80202da047
-
-
+// USDT ADDRESS:              0x7a6C7a3bab11D57423f9F5690AF6ff38BE2d771f
+// FACTORY PROXY ADDRESS:     0xA8835aFe5868e10677050b56B1dEe0C56ac4cA4d
+// FACTORY IMPL 1 ADDRESS:    0xC218767C0ff2357D609f67D5cC4Efa427Db04126
 
 // Factory upgradeable
 async function factory() {
@@ -31,7 +29,7 @@ async function factory() {
   });
 }
 
-// USDC
+// USDT
 async function usdt() {
   var contractUSDC = await ethers.deployContract("TetherUSD");
   console.log(`Address del contrato ${await contractUSDC.getAddress()}`)

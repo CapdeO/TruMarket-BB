@@ -101,10 +101,6 @@ function Card2({ add, name, price, investedFractions, sold }) {
                         <Col>Sold:</Col>
                         <Col>{sold}/{investedFractions}</Col>
                     </Row>
-                    <Row className='innedCard'>
-                        <Col>Profit:</Col>
-                        <Col>%6</Col>
-                    </Row>
                     <Row className='centrado' style={{ marginTop: '15px' }}>
                         <Col xs={5}>
                             <Form.Control

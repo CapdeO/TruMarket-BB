@@ -84,14 +84,21 @@ const useBlockchain = () => {
         })
     }
 
+    const checkChainId = async () => {
+        let network = getProvider().getNetwork()
+        if((await network).chainId != 137)
+            await connectWallet()
+    }
+
     // -------------------->  Contract functions
 
-    const factoryFunc = async (name, amountToFinance, investmentFractions) => {
+    const factoryFunc = async (name, operationAmount, amountToFinance, investmentFractions) => {
         const signer = await getProvider().getSigner()
         const contract = getFactoryContract(signer)
         return contract.FactoryFunc.send
             (
                 name,
+                operationAmount,
                 amountToFinance,
                 investmentFractions,
                 USDT_CONTRACT
@@ -143,15 +150,17 @@ const useBlockchain = () => {
                 list.map(async (address) => {
                     const contract = getFinancingContract(signer, address);
                     const name = await contract.name();
+                    const operationAmount = await contract.operationAmount()
                     const amountToFinance = await contract.amountToFinance();
                     const investmentFractions = await contract.investmentFractions();
                     const contractStatus = await contract.contractStatus();
                     const fractionPrice = await contract.fractionPrice()
-                    var sold = await contract.totalSupply()
+                    var sold = await contract.investedFractions()
 
                     return {
                         address,
                         name,
+                        operationAmount,
                         amountToFinance,
                         investmentFractions,
                         contractStatus,
