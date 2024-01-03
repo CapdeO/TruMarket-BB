@@ -55,8 +55,11 @@ const NFTs = () => {
                     <Col xs={1} className='centrado orange'>
                         #
                     </Col>
-                    <Col xs={5} className='centrado orange'>
+                    <Col xs={4} className='centrado orange'>
                         Name
+                    </Col>
+                    <Col className='centrado orange'>
+                        OpAmount
                     </Col>
                     <Col className='centrado orange'>
                         Amount
@@ -78,8 +81,11 @@ const NFTs = () => {
                         <Col xs={1} className='centrado'>
                             {index + 1}
                         </Col>
-                        <Col xs={5} className='centrado'>
+                        <Col xs={4} className='centrado'>
                             {nft.name}
+                        </Col>
+                        <Col className='centrado'>
+                            {Number(nft.operationAmount)}
                         </Col>
                         <Col className='centrado'>
                             {Number(nft.amountToFinance)}
