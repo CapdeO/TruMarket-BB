@@ -203,7 +203,7 @@ function setBuyBack(uint256 profit) public onlyRole(DEFAULT_ADMIN_ROLE) {
     require(totalAmount <= usdt.balanceOf(msg.sender), "Not enough USDT balance");
     // Ensures the contract is allowed to use Admin's funds
     require(usdt.allowance(msg.sender, address(this)) >= totalAmount, 
-        "In order to proceed, you must approve the required amount of USDT.");
+    "In order to proceed, you must approve the required amount of USDT.");
     // Transfers funds to the contract
     require(usdt.transferFrom(msg.sender, address(this), totalAmount), "USDT transfer error.");
     // Calculates the value of fractions plus profit
