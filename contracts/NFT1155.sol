@@ -202,62 +202,72 @@ contract FinancingContract1155 is
         emit WithdrawComplete(msg.sender, contractBalance);
     }
 
-    /**
-     * @dev Financing and BuyBack Mechanism
-     * @dev Allows the Admin to inject financed amount plus profit into the contract and enables profit withdrawal for investors.
-     */
-    function setBuyBack(uint256 profit) public onlyRole(DEFAULT_ADMIN_ROLE) {
-        // Ensures the contract is in the "Milestones" status
-        require(
-            contractStatus == Status.Milestones,
-            "Invalid status for Buyback."
-        );
-        // Ensures profit is greater than 0
-        require(profit > 0, "Profit can't be zero");
-        // Calculates the total amount including profit to be injected
-        uint256 totalAmount = amountToFinance +
-            ((amountToFinance * profit) / 100);
-        totalAmount = totalAmount * (10 ** 6);
-        // Ensures Admin has a sufficient balance
-        require(
-            totalAmount <= usdt.balanceOf(msg.sender),
-            "Not enough USDT balance"
-        );
-        // Ensures the contract is allowed to use Admin's funds
-        require(
-            usdt.allowance(msg.sender, address(this)) >= totalAmount,
-            "In order to proceed, you must approve the required amount of USDT."
-        );
-        // Transfers funds to the contract
-        require(
-            usdt.transferFrom(msg.sender, address(this), totalAmount),
-            "USDT transfer error."
-        );
-        // Calculates the value of fractions plus profit
-        buyBackPrice = fractionPrice + ((fractionPrice * profit) / 100);
-        buyBackPrice = buyBackPrice * (10 ** 6);
-        // Changes the contract status to Finished
-        contractStatus = Status.Finished;
-    }
+/**
+ * @dev Financing and BuyBack Mechanism
+ * @dev Allows the Admin to inject financed amount plus profit into the contract and enables profit withdrawal for investors.
+ */
+function setBuyBack(uint256 profit) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    // Ensures the contract is in the "Milestones" status
+    require(contractStatus == Status.Milestones, "Invalid status for Buyback.");
+    // Ensures profit is greater than 0
+    require(profit > 0, "Profit can't be zero");
+    // Calculates the total amount including profit to be injected
+    uint256 totalAmount = amountToFinance + ((amountToFinance * profit) / 100);
+    totalAmount = totalAmount * (10**6);
+    // Ensures Admin has a sufficient balance
+    require(totalAmount <= usdt.balanceOf(msg.sender), "Not enough USDT balance");
+    // Ensures the contract is allowed to use Admin's funds
+    require(usdt.allowance(msg.sender, address(this)) >= totalAmount, 
+    "In order to proceed, you must approve the required amount of USDT.");
+    // Transfers funds to the contract
+    require(usdt.transferFrom(msg.sender, address(this), totalAmount), "USDT transfer error.");
+    // Calculates the value of fractions plus profit
+    buyBackPrice = fractionPrice + ((fractionPrice * profit) / 100);
+    buyBackPrice = buyBackPrice * (10**6);
+    // Changes the contract status to Finished
+    contractStatus = Status.Finished;
+}
 
-    /**
-     * @dev Allows investors to withdraw profits after the contract is Finished.
-     */
-    function withdrawBuyBack() public whenNotPaused {
-        // Ensures the contract status is "Finished"
-        require(contractStatus == Status.Finished, "Contract is not finished.");
+/**
+ * @dev Allows investors to withdraw profits after the contract is Finished.
+ */
+function withdrawBuyBack() whenNotPaused public {
+    // Ensures the contract status is "Finished"
+    require(contractStatus == Status.Finished, "Contract is not finished.");
 
-        uint256 nftsAmount = balanceOf(msg.sender, ID);
-        // Ensures the value is greater than 0
-        require(nftsAmount > 0, "Caller has no tokens.");
-        // Calculates the total amount to be withdrawn
-        uint256 totalAmount = nftsAmount * buyBackPrice;
-        // Burns NFTs in blocks
-        _burn(msg.sender, ID, nftsAmount);
-        // Emits the event
-        emit BurnNfts(ID, nftsAmount);
-        // Transfers the money to their wallet
-        require(usdt.transfer(msg.sender, totalAmount), "USDT transfer error.");
+    uint256 nftsAmount = balanceOf(msg.sender, ID);
+    // Ensures the value is greater than 0
+    require(nftsAmount > 0, "Caller has no tokens.");
+    // Calculates the total amount to be withdrawn
+    uint256 totalAmount = nftsAmount * buyBackPrice;
+    // Burns NFTs in blocks
+    _burn(msg.sender, ID, nftsAmount);
+    // Emits the event
+    emit BurnNfts(ID, nftsAmount);
+    // Transfers the money to their wallet
+    require(usdt.transfer(msg.sender, totalAmount), "USDT transfer error.");
+}
+
+/**
+ * @dev Overrides supportsInterface to check ERC1155 and AccessControl interfaces.
+ */
+function supportsInterface(bytes4 interfaceId)
+    public
+    view
+    override(ERC1155, AccessControl)
+    returns (bool)
+{
+    return super.supportsInterface(interfaceId);
+}
+
+/**
+ * @dev Overrides _beforeTokenTransfer to check ERC1155 and ERC1155Pausable interfaces.
+ */
+function _beforeTokenTransfer(address operator, address from, address to, uint256[] memory ids, uint256[] memory amounts, bytes memory data)
+    internal
+    override(ERC1155, ERC1155Pausable)
+{
+    super._beforeTokenTransfer(operator, from, to, ids, amounts, data);
     }
 
     /**
@@ -277,26 +287,4 @@ contract FinancingContract1155 is
         _unpause();
     }
 
-    /**
-     * @dev Overrides supportsInterface to check ERC1155 and AccessControl interfaces.
-     */
-    function supportsInterface(
-        bytes4 interfaceId
-    ) public view override(ERC1155, AccessControl) returns (bool) {
-        return super.supportsInterface(interfaceId);
-    }
-
-    /**
-     * @dev Overrides _beforeTokenTransfer to check ERC1155 and ERC1155Pausable interfaces.
-     */
-    function _beforeTokenTransfer(
-        address operator,
-        address from,
-        address to,
-        uint256[] memory ids,
-        uint256[] memory amounts,
-        bytes memory data
-    ) internal override(ERC1155, ERC1155Pausable) {
-        super._beforeTokenTransfer(operator, from, to, ids, amounts, data);
-    }
 }
