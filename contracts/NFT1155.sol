@@ -51,6 +51,8 @@ contract FinancingContract1155 is
     uint256 public fractionPrice; // Price of each fraction
     uint256 public buyBackPrice; // Value of each fraction including profit
     uint256 public investedFractions; // Fractions already purchased
+    uint256 public finishedDate; // Date and time the contract was finished
+    bool public isExpired; // Indicates whether the contract has expired
     address[] public investors; // Ivestors
     IUSDT usdt; // USDT Tether interface
 
@@ -226,6 +228,8 @@ function setBuyBack(uint256 profit) public onlyRole(DEFAULT_ADMIN_ROLE) {
     buyBackPrice = buyBackPrice * (10**6);
     // Changes the contract status to Finished
     contractStatus = Status.Finished;
+    // Sets the contract expiration date
+    finishedDate = block.timestamp;
 }
 
 /**
@@ -246,6 +250,17 @@ function withdrawBuyBack() whenNotPaused public {
     emit BurnNfts(ID, nftsAmount);
     // Transfers the money to their wallet
     require(usdt.transfer(msg.sender, totalAmount), "USDT transfer error.");
+}
+
+function withdrawExpiredUSDT() public onlyRole(DEFAULT_ADMIN_ROLE) {
+    // Ensures the contract status is "Finished"
+    require(contractStatus == Status.Finished, "Contract is not finished.");
+    // Ensures the contract has expired
+    require(block.timestamp > (finishedDate + 3888000), "Contract has not expired.");
+    // Ensures the contract has a sufficient balance
+    require(usdt.balanceOf(address(this)) > 0, "Contract has no USDT balance.");
+    // Transfers the money to the Admin's wallet
+    require(usdt.transfer(msg.sender, usdt.balanceOf(address(this))), "USDT transfer error.");
 }
 
 /**
