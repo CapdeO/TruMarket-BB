@@ -252,6 +252,9 @@ function withdrawBuyBack() whenNotPaused public {
     require(usdt.transfer(msg.sender, totalAmount), "USDT transfer error.");
 }
 
+/**
+ * @dev Allows the Admin to withdraw expired funds after the contract is Finished.
+ */
 function withdrawExpiredUSDT() public onlyRole(DEFAULT_ADMIN_ROLE) {
     // Ensures the contract status is "Finished"
     require(contractStatus == Status.Finished, "Contract is not finished.");
