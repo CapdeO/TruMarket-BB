@@ -52,7 +52,6 @@ contract FinancingContract1155 is
     uint256 public buyBackPrice; // Value of each fraction including profit
     uint256 public investedFractions; // Fractions already purchased
     uint256 public finishedDate; // Date and time the contract was finished
-    bool public isExpired; // Indicates whether the contract has expired
     address[] public investors; // Ivestors
     IUSDT usdt; // USDT Tether interface
 
