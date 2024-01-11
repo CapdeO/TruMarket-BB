@@ -270,6 +270,7 @@ function withdrawExpiredUSDT() public onlyRole(DEFAULT_ADMIN_ROLE) {
  */
 function newAdmin(address _newAdmin) public onlyRole(DEFAULT_ADMIN_ROLE) {
     _setupRole(DEFAULT_ADMIN_ROLE, _newAdmin);
+    _setupRole(PAUSER_ROLE, _newAdmin);
 }
 
 /**
