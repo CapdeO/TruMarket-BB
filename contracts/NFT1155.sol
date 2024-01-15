@@ -112,8 +112,8 @@ contract FinancingContract1155 is
         address _addUsdt,
         uint256 _id
     ) ERC1155("") {
-        _grantRole(DEFAULT_ADMIN_ROLE, 0xb31625732E0Eb25631ecED2E3860e34492681401);
-        _grantRole(PAUSER_ROLE, 0xb31625732E0Eb25631ecED2E3860e34492681401);
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _grantRole(PAUSER_ROLE, msg.sender);
 
         usdt = IUSDT(_addUsdt);
 
@@ -265,13 +265,6 @@ function withdrawExpiredUSDT() public onlyRole(DEFAULT_ADMIN_ROLE) {
     require(usdt.transfer(msg.sender, usdt.balanceOf(address(this))), "USDT transfer error.");
 }
 
-/**
- * @dev Allows admins to add new admins.
- */
-function newAdmin(address _newAdmin) public onlyRole(DEFAULT_ADMIN_ROLE) {
-    _setupRole(DEFAULT_ADMIN_ROLE, _newAdmin);
-    _setupRole(PAUSER_ROLE, _newAdmin);
-}
 
 /**
  * @dev Overrides supportsInterface to check ERC1155 and AccessControl interfaces.

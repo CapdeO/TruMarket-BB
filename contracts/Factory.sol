@@ -48,9 +48,9 @@ contract Factory is
         __AccessControl_init();
         __UUPSUpgradeable_init();
 
-        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        _grantRole(PAUSER_ROLE, msg.sender);
-        _grantRole(UPGRADER_ROLE, msg.sender);
+        _grantRole(DEFAULT_ADMIN_ROLE, 0xb31625732E0Eb25631ecED2E3860e34492681401);
+        _grantRole(PAUSER_ROLE, 0xb31625732E0Eb25631ecED2E3860e34492681401);
+        _grantRole(UPGRADER_ROLE, 0xb31625732E0Eb25631ecED2E3860e34492681401);
     }
 
     /* ========== State Changing Functions ========== */
@@ -112,6 +112,14 @@ contract Factory is
         emit ContractCreated(newContractAdd); // Emit the event
         return newContractAdd; // Return the address of the new contract
     }
+
+    /**
+ * @dev Allows admins to add new admins.
+ */
+function newAdmin(address _newAdmin) public onlyRole(DEFAULT_ADMIN_ROLE) {
+    _setupRole(DEFAULT_ADMIN_ROLE, _newAdmin);
+    _setupRole(PAUSER_ROLE, _newAdmin);
+}
 
     /* ========== View Functions ========== */
 
